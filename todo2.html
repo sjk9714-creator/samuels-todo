@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Samuel's To-Do List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F7F5F0; --surface: #FFFFFF; --text: #1A1A18;
+  --text-muted: #8A8880; --text-faint: #C4C2BC;
+  --border: rgba(0,0,0,0.08); --border-strong: rgba(0,0,0,0.14);
+  --accent: #2D5A3D; --accent-light: #EBF2ED;
+  --danger: #C0392B; --danger-light: #FDF0EE;
+  --urgent-bg: #FDF0EE; --urgent-text: #C0392B;
+  --important-bg: #FEF7E6; --important-text: #B7770D;
+  --low-bg: #EBF2ED; --low-text: #2D5A3D;
+  --radius: 14px; --radius-sm: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141412; --surface: #1E1E1B; --text: #F0EDE6;
+    --text-muted: #7A7870; --text-faint: #4A4844;
+    --border: rgba(255,255,255,0.07); --border-strong: rgba(255,255,255,0.12);
+    --accent: #4A8C5C; --accent-light: #1A2E20;
+    --danger: #E05C4B; --danger-light: #2E1612;
+    --urgent-bg: #2E1612; --urgent-text: #E05C4B;
+    --important-bg: #2A200A; --important-text: #D4920F;
+    --low-bg: #162019; --low-text: #4A8C5C;
+  }
+}
+
+html, body { height: 100%; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+#shell { display: flex; flex-direction: column; height: 100dvh; max-width: 520px; margin: 0 auto; }
+
+#install-bar { background: var(--text); color: var(--bg); text-align: center; font-size: 12px; padding: 8px 16px; display: none; flex-shrink: 0; }
+@media (display-mode: standalone) { #install-bar { display: none !important; } }
+
+#top { padding: 20px 20px 0; flex-shrink: 0; }
+#wordmark { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: -0.5px; color: var(--text); }
+
+#top-row { display: flex; align-items: baseline; justify-content: space-between; }
+#today-str { font-size: 12px; color: var(--text-muted); margin-top: 1px; font-weight: 300; }
+#sync-status { font-size: 11px; color: var(--text-faint); }
+#sync-status.ok { color: var(--accent); }
+#sync-status.err { color: var(--danger); }
+
+#tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--border); }
+.tab { font-size: 13px; font-weight: 400; color: var(--text-muted); padding: 8px 14px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s; font-family: 'DM Sans', sans-serif; }
+.tab.active { color: var(--text); font-weight: 500; border-bottom-color: var(--text); }
+
+#panels { flex: 1; overflow: hidden; }
+.panel { display: none; height: 100%; flex-direction: column; overflow: hidden; }
+.panel.visible { display: flex; }
+
+#add-area { padding: 12px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+#add-row { display: flex; gap: 8px; }
+#task-input { flex: 1; height: 40px; padding: 0 14px; font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); outline: none; transition: border-color 0.15s; }
+#task-input::placeholder { color: var(--text-faint); }
+#task-input:focus { border-color: var(--accent); }
+
+#mic-btn { height: 40px; width: 40px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; transition: all 0.12s; flex-shrink: 0; }
+#mic-btn:hover { background: var(--bg); }
+#mic-btn.recording { background: var(--urgent-bg); color: var(--urgent-text); border-color: var(--urgent-text); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.55} }
+
+#add-btn { height: 40px; padding: 0 18px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; background: var(--text); color: var(--bg); border: none; border-radius: var(--radius-sm); cursor: pointer; transition: opacity 0.15s; flex-shrink: 0; }
+#add-btn:hover { opacity: 0.85; }
+#add-btn:disabled { opacity: 0.4; cursor: default; }
+
+#task-options { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.opt-select { height: 30px; padding: 0 8px; font-family: 'DM Sans', sans-serif; font-size: 12px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-muted); outline: none; cursor: pointer; }
+.opt-select:focus { border-color: var(--accent); }
+
+#filter-row { display: flex; gap: 6px; padding: 10px 20px; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+#filter-row::-webkit-scrollbar { display: none; }
+.filter-pill { font-size: 12px; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--border-strong); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.12s; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+.filter-pill.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+#task-list { flex: 1; overflow-y: auto; padding: 4px 20px 20px; }
+
+.task { display: flex; align-items: flex-start; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none} }
+.task:last-child { border-bottom: none; }
+.task.done { opacity: 0.45; }
+
+.check { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border-strong); background: transparent; cursor: pointer; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.check.done { background: var(--accent); border-color: var(--accent); }
+.check.done::after { content:''; width:5px; height:3px; border-left:1.5px solid #fff; border-bottom:1.5px solid #fff; transform:rotate(-45deg) translateY(-1px); display:block; }
+
+.task-body { flex: 1; min-width: 0; }
+.task-text { font-size: 15px; color: var(--text); word-break: break-word; cursor: pointer; }
+.task.done .task-text { text-decoration: line-through; color: var(--text-faint); }
+
+.task-tags { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
+.tag { font-size: 11px; padding: 2px 8px; border-radius: 99px; }
+.tag.urgent { background: var(--urgent-bg); color: var(--urgent-text); }
+.tag.important { background: var(--important-bg); color: var(--important-text); }
+.tag.low { background: var(--low-bg); color: var(--low-text); }
+.tag.cat { background: var(--border); color: var(--text-muted); }
+.tag.overdue { background: var(--urgent-bg); color: var(--urgent-text); }
+.tag.duetoday { background: var(--important-bg); color: var(--important-text); }
+.tag.upcoming { background: var(--border); color: var(--text-muted); }
+.tag.recur { color: var(--text-faint); background: none; padding-left: 0; }
+
+.del { width: 26px; height: 26px; border: none; background: transparent; color: var(--text-faint); cursor: pointer; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; line-height: 1; transition: all 0.12s; }
+.del:hover { background: var(--danger-light); color: var(--danger); }
+
+#empty-state { text-align: center; padding: 3rem 0; color: var(--text-faint); font-size: 14px; }
+
+#task-footer { padding: 10px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+#clear-done { font-size: 12px; font-family: 'DM Sans', sans-serif; color: var(--text-muted); background: none; border: none; cursor: pointer; text-decoration: underline; }
+#clear-done:hover { color: var(--danger); }
+
+/* Chat */
+#api-key-row { display: flex; gap: 8px; padding: 12px 20px 0; flex-shrink: 0; }
+#api-key-input { flex: 1; height: 36px; padding: 0 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); outline: none; }
+#api-key-input::placeholder { color: var(--text-faint); font-size: 12px; }
+#save-key-btn { height: 36px; padding: 0 14px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); cursor: pointer; }
+#key-status { font-size: 11px; color: var(--text-muted); padding: 5px 20px 0; flex-shrink: 0; }
+
+#briefing-btn { margin: 10px 20px 0; padding: 10px 16px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; background: var(--accent-light); color: var(--accent); border: 1px solid rgba(45,90,61,0.18); border-radius: var(--radius-sm); cursor: pointer; text-align: left; transition: opacity 0.15s; flex-shrink: 0; }
+#briefing-btn:hover { opacity: 0.8; }
+#briefing-btn:disabled { opacity: 0.4; cursor: default; }
+
+#chat-messages { flex: 1; overflow-y: auto; padding: 14px 20px; display: flex; flex-direction: column; gap: 12px; }
+.msg { max-width: 86%; padding: 10px 14px; border-radius: var(--radius); font-size: 14px; line-height: 1.55; animation: fadeIn 0.2s ease; white-space: pre-wrap; word-break: break-word; }
+.msg.user { align-self: flex-end; background: var(--text); color: var(--bg); border-bottom-right-radius: 4px; }
+.msg.ai { align-self: flex-start; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+.msg.typing { color: var(--text-muted); font-style: italic; }
+
+#chat-input-row { display: flex; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
+#chat-input { flex: 1; height: 40px; padding: 0 14px; font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); outline: none; transition: border-color 0.15s; }
+#chat-input:focus { border-color: var(--accent); }
+#send-btn { height: 40px; width: 40px; font-size: 18px; background: var(--text); color: var(--bg); border: none; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity 0.15s; flex-shrink: 0; }
+#send-btn:hover { opacity: 0.85; }
+#send-btn:disabled { opacity: 0.35; cursor: default; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+</style>
+</head>
+<body>
+<div id="shell">
+  <div id="install-bar">Add to home screen — tap Share → Add to Home Screen</div>
+
+  <div id="top">
+    <div id="top-row">
+      <div id="wordmark">Samuel's To-Do List</div>
+      <span id="sync-status">connecting...</span>
+    </div>
+    <div id="today-str"></div>
+    <div id="tabs">
+      <button class="tab active" data-tab="tasks">Tasks</button>
+      <button class="tab" data-tab="chat">Ask Claude</button>
+    </div>
+  </div>
+
+  <div id="panels">
+
+    <div class="panel visible" id="panel-tasks">
+      <div id="add-area">
+        <div id="add-row">
+          <input type="text" id="task-input" placeholder="What needs doing?" autocomplete="off" />
+          <button id="mic-btn" title="Voice input">🎤</button>
+          <button id="add-btn">Add</button>
+        </div>
+        <div id="task-options">
+          <select class="opt-select" id="priority-select">
+            <option value="">Priority</option>
+            <option value="urgent">🔴 Urgent</option>
+            <option value="important">🟡 Important</option>
+            <option value="low">🟢 Low</option>
+          </select>
+          <input type="date" id="due-input" class="opt-select" />
+          <select class="opt-select" id="recur-select">
+            <option value="">Recurring</option>
+            <option value="daily">↻ Daily</option>
+            <option value="weekly">↻ Weekly</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="filter-row">
+        <button class="filter-pill active" data-filter="all">All</button>
+        <button class="filter-pill" data-filter="active">Active</button>
+        <button class="filter-pill" data-filter="done">Done</button>
+        <button class="filter-pill" data-filter="urgent">Urgent</button>
+        <button class="filter-pill" data-filter="today">Due Today</button>
+        <button class="filter-pill" data-filter="overdue">Overdue</button>
+      </div>
+
+      <div id="task-list"></div>
+
+      <div id="task-footer">
+        <span id="count-label"></span>
+        <button id="clear-done">Clear completed</button>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-chat">
+      <div id="api-key-row">
+        <input type="password" id="api-key-input" placeholder="Paste Anthropic API key (sk-ant-...)" autocomplete="off" />
+        <button id="save-key-btn">Save</button>
+      </div>
+      <div id="key-status"></div>
+      <button id="briefing-btn">☀️ Get my daily briefing</button>
+      <div id="chat-messages">
+        <div class="msg ai">Hey Samuel! I can see your full task list — priorities, due dates, categories, everything. Ask me anything or hit the briefing button for your daily rundown.</div>
+      </div>
+      <div id="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Ask about your tasks..." autocomplete="off" />
+        <button id="send-btn">↑</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://rtgtgjcfaabdvumqtwgl.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0Z3RnamNmYWFiZHZ1bXF0d2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDY1NjAsImV4cCI6MjA4ODkyMjU2MH0.IcdGUydtjwS1aYzZGv32GesRcOe3YafgQ0P_CeJyS2A';
+const API_KEY_STORE = 'samuel_api_key';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let tasks = [];
+let filter = 'all';
+let apiKey = localStorage.getItem(API_KEY_STORE) || '';
+let chatHistory = [];
+let isRecording = false;
+let recognition = null;
+
+// ── Sync status ───────────────────────────────────────────
+function setSync(state, label) {
+  const el = document.getElementById('sync-status');
+  el.textContent = label;
+  el.className = state;
+}
+
+// ── Load & subscribe ──────────────────────────────────────
+async function loadTasks() {
+  setSync('', 'connecting...');
+  const { data, error } = await sb.from('tasks').select('*').order('id', { ascending: false });
+  if (error) { setSync('err', 'offline'); return; }
+  tasks = data || [];
+  checkRecurring();
+  renderTasks();
+  setSync('ok', '● live');
+  subscribeToChanges();
+}
+
+function subscribeToChanges() {
+  sb.channel('tasks-channel')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
+      const { eventType, new: newRow, old: oldRow } = payload;
+      if (eventType === 'INSERT') {
+        if (!tasks.find(t => t.id === newRow.id)) { tasks.unshift(newRow); renderTasks(); }
+      } else if (eventType === 'UPDATE') {
+        const idx = tasks.findIndex(t => t.id === oldRow.id);
+        if (idx !== -1) { tasks[idx] = newRow; renderTasks(); }
+      } else if (eventType === 'DELETE') {
+        tasks = tasks.filter(t => t.id !== oldRow.id); renderTasks();
+      }
+    })
+    .subscribe();
+}
+
+// ── Recurring ─────────────────────────────────────────────
+function dateStr(d) { return d.toISOString().split('T')[0]; }
+
+function checkRecurring() {
+  const today = dateStr(new Date());
+  tasks.forEach(t => {
+    if (!t.recurring || !t.done) return;
+    let shouldReset = false;
+    if (t.recurring === 'daily' && t.last_reset !== today) shouldReset = true;
+    if (t.recurring === 'weekly') {
+      const last = t.last_reset ? new Date(t.last_reset) : null;
+      if (!last || (new Date() - last) >= 7*24*60*60*1000) shouldReset = true;
+    }
+    if (shouldReset) updateTask(t.id, { done: false, last_reset: today });
+  });
+}
+
+// ── CRUD ──────────────────────────────────────────────────
+async function addTask(text) {
+  if (!text.trim()) return;
+  document.getElementById('add-btn').disabled = true;
+  const row = {
+    id: Date.now(),
+    text: text.trim(),
+    done: false,
+    created: new Date().toISOString(),
+    priority: document.getElementById('priority-select').value || null,
+    due: document.getElementById('due-input').value || null,
+    recurring: document.getElementById('recur-select').value || null,
+    last_reset: null,
+    category: guessCategory(text)
+  };
+  document.getElementById('priority-select').value = '';
+  document.getElementById('due-input').value = '';
+  document.getElementById('recur-select').value = '';
+
+  const { error } = await sb.from('tasks').insert(row);
+  if (error) { setSync('err', 'save failed'); }
+  document.getElementById('add-btn').disabled = false;
+}
+
+async function updateTask(id, changes) {
+  const { error } = await sb.from('tasks').update(changes).eq('id', id);
+  if (error) setSync('err', 'sync error');
+}
+
+async function deleteTask(id) {
+  const { error } = await sb.from('tasks').delete().eq('id', id);
+  if (error) setSync('err', 'delete failed');
+}
+
+async function toggleTask(id) {
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  const changes = { done: !t.done };
+  if (!t.done && t.recurring) changes.last_reset = dateStr(new Date());
+  t.done = changes.done;
+  renderTasks();
+  await updateTask(id, changes);
+}
+
+async function clearDone() {
+  const doneIds = tasks.filter(t => t.done).map(t => t.id);
+  if (!doneIds.length) return;
+  await sb.from('tasks').delete().in('id', doneIds);
+}
+
+// ── Category guess ────────────────────────────────────────
+function guessCategory(text) {
+  if (/study|exam|class|lecture|assignment|homework|nyu|course|reading|textbook|quiz/i.test(text)) return 'academic';
+  if (/apply|resume|interview|internship|linkedin|cover letter|career|job/i.test(text)) return 'career';
+  if (/gym|workout|run|lift|train|exercise|cardio|physique|bodybuilding/i.test(text)) return 'fitness';
+  if (/read|book|article|chapter|podcast|pages/i.test(text)) return 'reading';
+  if (/pay|bill|rent|bank|budget|finance|money|invoice/i.test(text)) return 'finance';
+  return 'personal';
+}
+
+// ── Due date ──────────────────────────────────────────────
+function getDueStatus(due) {
+  if (!due) return null;
+  const today = dateStr(new Date());
+  if (due < today) return 'overdue';
+  if (due === today) return 'today';
+  return 'upcoming';
+}
+
+function formatDueTag(due) {
+  const status = getDueStatus(due);
+  if (!status) return '';
+  const d = new Date(due + 'T12:00:00');
+  const label = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  if (status === 'overdue') return `<span class="tag overdue">Overdue · ${label}</span>`;
+  if (status === 'today') return `<span class="tag duetoday">Due today</span>`;
+  return `<span class="tag upcoming">${label}</span>`;
+}
+
+// ── Render ────────────────────────────────────────────────
+function getVisible() {
+  const today = dateStr(new Date());
+  return tasks.filter(t => {
+    if (filter === 'active') return !t.done;
+    if (filter === 'done') return t.done;
+    if (filter === 'urgent') return t.priority === 'urgent' && !t.done;
+    if (filter === 'today') return t.due === today && !t.done;
+    if (filter === 'overdue') return t.due && t.due < today && !t.done;
+    return true;
+  });
+}
+
+function renderTasks() {
+  const visible = getVisible();
+  const list = document.getElementById('task-list');
+  const priorityLabels = { urgent:'🔴 Urgent', important:'🟡 Important', low:'🟢 Low' };
+
+  if (visible.length === 0) {
+    const msgs = { all:'Nothing here yet', active:'All done! 🎉', done:'No completed tasks', urgent:'No urgent tasks', today:'Nothing due today', overdue:'No overdue tasks' };
+    list.innerHTML = `<div id="empty-state">${msgs[filter]||'Nothing here'}</div>`;
+  } else {
+    list.innerHTML = visible.map(t => {
+      const tags = [
+        t.priority ? `<span class="tag ${t.priority}">${priorityLabels[t.priority]}</span>` : '',
+        t.due ? formatDueTag(t.due) : '',
+        t.category ? `<span class="tag cat">${t.category}</span>` : '',
+        t.recurring ? `<span class="tag recur">↻ ${t.recurring}</span>` : ''
+      ].filter(Boolean).join('');
+      return `<div class="task${t.done?' done':''}" data-id="${t.id}">
+        <button class="check${t.done?' done':''}" data-action="toggle"></button>
+        <div class="task-body">
+          <div class="task-text" data-action="toggle">${escHtml(t.text)}</div>
+          ${tags ? `<div class="task-tags">${tags}</div>` : ''}
+        </div>
+        <button class="del" data-action="delete">×</button>
+      </div>`;
+    }).join('');
+  }
+
+  const active = tasks.filter(t => !t.done).length;
+  const today = dateStr(new Date());
+  const overdue = tasks.filter(t => t.due && t.due < today && !t.done).length;
+  document.getElementById('count-label').textContent = `${active} remaining${overdue ? ' · ' + overdue + ' overdue' : ''}`;
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function setToday() {
+  document.getElementById('today-str').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+}
+
+// ── Tabs ──────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('visible');
+  });
+});
+
+// ── Filters ───────────────────────────────────────────────
+document.getElementById('filter-row').addEventListener('click', e => {
+  if (!e.target.dataset.filter) return;
+  filter = e.target.dataset.filter;
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  e.target.classList.add('active');
+  renderTasks();
+});
+
+// ── Add ───────────────────────────────────────────────────
+document.getElementById('add-btn').addEventListener('click', () => {
+  const inp = document.getElementById('task-input');
+  addTask(inp.value); inp.value = '';
+});
+document.getElementById('task-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { addTask(e.target.value); e.target.value = ''; }
+});
+
+document.getElementById('task-list').addEventListener('click', e => {
+  const item = e.target.closest('.task');
+  if (!item) return;
+  const id = Number(item.dataset.id);
+  const action = e.target.dataset.action || e.target.closest('[data-action]')?.dataset.action;
+  if (action === 'toggle') toggleTask(id);
+  if (action === 'delete') deleteTask(id);
+});
+
+document.getElementById('clear-done').addEventListener('click', clearDone);
+
+// ── Voice ─────────────────────────────────────────────────
+document.getElementById('mic-btn').addEventListener('click', () => {
+  if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+    alert('Voice input not supported in this browser. Try Chrome or Safari.'); return;
+  }
+  if (isRecording) { recognition && recognition.stop(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'en-US'; recognition.interimResults = false;
+  recognition.onstart = () => { isRecording = true; document.getElementById('mic-btn').classList.add('recording'); };
+  recognition.onresult = e => { document.getElementById('task-input').value = e.results[0][0].transcript; };
+  recognition.onend = () => { isRecording = false; document.getElementById('mic-btn').classList.remove('recording'); };
+  recognition.onerror = () => { isRecording = false; document.getElementById('mic-btn').classList.remove('recording'); };
+  recognition.start();
+});
+
+// ── API key ───────────────────────────────────────────────
+function updateKeyStatus() {
+  const el = document.getElementById('key-status');
+  if (apiKey) { el.textContent = `Key saved (${apiKey.slice(0,12)}...)`; el.style.color = 'var(--accent)'; }
+  else { el.textContent = 'No key — get yours at console.anthropic.com'; el.style.color = 'var(--text-muted)'; }
+}
+document.getElementById('save-key-btn').addEventListener('click', () => {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (val.startsWith('sk-')) { apiKey = val; localStorage.setItem(API_KEY_STORE, apiKey); document.getElementById('api-key-input').value = ''; updateKeyStatus(); }
+  else { document.getElementById('key-status').textContent = 'Invalid key — should start with sk-ant-'; document.getElementById('key-status').style.color = 'var(--danger)'; }
+});
+
+// ── Claude ────────────────────────────────────────────────
+function buildTaskContext() {
+  if (!tasks.length) return 'Samuel has no tasks.';
+  const today = dateStr(new Date());
+  const active = tasks.filter(t => !t.done);
+  const done = tasks.filter(t => t.done);
+  const overdue = active.filter(t => t.due && t.due < today);
+  const dueToday = active.filter(t => t.due === today);
+  const urgent = active.filter(t => t.priority === 'urgent' && !overdue.includes(t) && !dueToday.includes(t));
+  const rest = active.filter(t => !overdue.includes(t) && !dueToday.includes(t) && !urgent.includes(t));
+  let ctx = `Samuel's tasks — ${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}:\n\n`;
+  if (overdue.length) { ctx += `OVERDUE:\n`; overdue.forEach(t => { ctx += `- ${t.text} [due ${t.due}] [${t.priority||'no priority'}] [${t.category}]\n`; }); ctx += '\n'; }
+  if (dueToday.length) { ctx += `DUE TODAY:\n`; dueToday.forEach(t => { ctx += `- ${t.text} [${t.priority||'no priority'}] [${t.category}]\n`; }); ctx += '\n'; }
+  if (urgent.length) { ctx += `URGENT:\n`; urgent.forEach(t => { ctx += `- ${t.text}${t.due?' [due '+t.due+']':''} [${t.category}]\n`; }); ctx += '\n'; }
+  if (rest.length) { ctx += `OTHER ACTIVE:\n`; rest.forEach(t => { ctx += `- ${t.text}${t.priority?' ['+t.priority+']':''}${t.due?' [due '+t.due+']':''}${t.recurring?' ['+t.recurring+']':''} [${t.category}]\n`; }); ctx += '\n'; }
+  if (done.length) { ctx += `COMPLETED (${done.length} total)\n`; }
+  return ctx;
+}
+
+async function callClaude(userMessage) {
+  if (!apiKey) { appendMsg('ai', 'Please save your Anthropic API key above to chat with Claude.'); return; }
+  appendMsg('user', userMessage);
+  chatHistory.push({ role: 'user', content: userMessage });
+  const typingEl = appendMsg('ai', 'Thinking...', true);
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('briefing-btn').disabled = true;
+
+  const system = `You are Samuel's personal productivity assistant inside his to-do app. You have full real-time visibility into his synced task list. Samuel is an NYU real estate student with an active internship search. Be concise, warm, and direct — like a smart friend, not a corporate tool. Plain text only, no markdown.\n\n${buildTaskContext()}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-calls': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, system, messages: chatHistory })
+    });
+    const data = await res.json();
+    typingEl.remove();
+    if (data.error) { appendMsg('ai', `Error: ${data.error.message}`); }
+    else { const reply = data.content[0].text; appendMsg('ai', reply); chatHistory.push({ role: 'assistant', content: reply }); }
+  } catch(e) {
+    typingEl.remove();
+    appendMsg('ai', 'Something went wrong. Check your API key and try again.');
+  }
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('briefing-btn').disabled = false;
+}
+
+function appendMsg(role, text, isTyping = false) {
+  const msgs = document.getElementById('chat-messages');
+  const el = document.createElement('div');
+  el.className = `msg ${role}${isTyping ? ' typing' : ''}`;
+  el.textContent = text;
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+  return el;
+}
+
+async function sendMessage() {
+  const inp = document.getElementById('chat-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  await callClaude(text);
+}
+
+document.getElementById('briefing-btn').addEventListener('click', () => {
+  const today = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  callClaude(`Give me my daily briefing for ${today}. What's overdue, what's due today, top priorities, and one quick win I can knock out fast. Under 120 words, friendly tone.`);
+});
+
+document.getElementById('send-btn').addEventListener('click', sendMessage);
+document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+if ('standalone' in navigator && !navigator.standalone && /iPhone|iPad/.test(navigator.userAgent)) {
+  document.getElementById('install-bar').style.display = 'block';
+}
+
+setToday();
+updateKeyStatus();
+loadTasks();
+</script>
+</body>
+</html>
