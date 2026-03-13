@@ -145,9 +145,75 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+/* Loading screen */
+#loading-screen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 999;
+  gap: 20px;
+  transition: opacity 0.4s ease;
+}
+#loading-screen.hidden { opacity: 0; pointer-events: none; }
+
+#loading-wordmark {
+  font-family: 'DM Serif Display', serif;
+  font-size: 26px;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+#loading-msg {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 300;
+  text-align: center;
+  max-width: 220px;
+  line-height: 1.6;
+}
+
+#loading-dots {
+  display: flex; gap: 6px; align-items: center;
+}
+
+.dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: dotPulse 1.4s infinite ease-in-out;
+}
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+#loading-slow {
+  font-size: 12px;
+  color: var(--text-faint);
+  text-align: center;
+  max-width: 240px;
+  line-height: 1.6;
+  display: none;
+}
 </style>
 </head>
 <body>
+<div id="loading-screen">
+  <div id="loading-wordmark">Samuel's To-Do List</div>
+  <div id="loading-dots">
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+  <div id="loading-msg">Waking things up...</div>
+  <div id="loading-slow">Taking a little longer than usual — Supabase is warming up from sleep. Hang tight, this only happens after a few days of inactivity.</div>
+</div>
+
 <div id="shell">
   <div id="install-bar">Add to home screen — tap Share → Add to Home Screen</div>
 
@@ -245,15 +311,37 @@ function setSync(state, label) {
   el.className = state;
 }
 
+// ── Loading screen ────────────────────────────────────────
+function showLoading(msg) {
+  document.getElementById('loading-msg').textContent = msg;
+  document.getElementById('loading-screen').classList.remove('hidden');
+}
+
+function hideLoading() {
+  const screen = document.getElementById('loading-screen');
+  screen.classList.add('hidden');
+  setTimeout(() => { screen.style.display = 'none'; }, 400);
+}
+
 // ── Load & subscribe ──────────────────────────────────────
 async function loadTasks() {
   setSync('', 'connecting...');
+  showLoading('Waking things up...');
+
+  const slowTimer = setTimeout(() => {
+    document.getElementById('loading-slow').style.display = 'block';
+    showLoading('Still loading...');
+  }, 4000);
+
   const { data, error } = await sb.from('tasks').select('*').order('id', { ascending: false });
-  if (error) { setSync('err', 'offline'); return; }
+  clearTimeout(slowTimer);
+
+  if (error) { setSync('err', 'offline'); hideLoading(); return; }
   tasks = data || [];
   checkRecurring();
   renderTasks();
   setSync('ok', '● live');
+  hideLoading();
   subscribeToChanges();
 }
 
