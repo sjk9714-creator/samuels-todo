@@ -45,21 +45,22 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 
 #top { padding: 20px 20px 0; flex-shrink: 0; }
 #wordmark { font-family: 'DM Serif Display', serif; font-size: 22px; letter-spacing: -0.5px; color: var(--text); }
-
 #top-row { display: flex; align-items: baseline; justify-content: space-between; }
 #today-str { font-size: 12px; color: var(--text-muted); margin-top: 1px; font-weight: 300; }
 #sync-status { font-size: 11px; color: var(--text-faint); }
 #sync-status.ok { color: var(--accent); }
 #sync-status.err { color: var(--danger); }
 
-#tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--border); }
-.tab { font-size: 13px; font-weight: 400; color: var(--text-muted); padding: 8px 14px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s; font-family: 'DM Sans', sans-serif; }
+#tabs { display: flex; gap: 0; margin-top: 16px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+#tabs::-webkit-scrollbar { display: none; }
+.tab { font-size: 13px; font-weight: 400; color: var(--text-muted); padding: 8px 14px; border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
 .tab.active { color: var(--text); font-weight: 500; border-bottom-color: var(--text); }
 
 #panels { flex: 1; overflow: hidden; }
 .panel { display: none; height: 100%; flex-direction: column; overflow: hidden; }
 .panel.visible { display: flex; }
 
+/* Add area */
 #add-area { padding: 12px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 #add-row { display: flex; gap: 8px; }
 #task-input { flex: 1; height: 40px; padding: 0 14px; font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); outline: none; transition: border-color 0.15s; }
@@ -74,6 +75,9 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 #add-btn { height: 40px; padding: 0 18px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; background: var(--text); color: var(--bg); border: none; border-radius: var(--radius-sm); cursor: pointer; transition: opacity 0.15s; flex-shrink: 0; }
 #add-btn:hover { opacity: 0.85; }
 #add-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* NL preview */
+#nl-preview { display: none; margin-top: 8px; padding: 8px 12px; background: var(--accent-light); border-radius: var(--radius-sm); font-size: 12px; color: var(--accent); line-height: 1.5; }
 
 #task-options { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .opt-select { height: 30px; padding: 0 8px; font-family: 'DM Sans', sans-serif; font-size: 12px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-muted); outline: none; cursor: pointer; }
@@ -119,6 +123,25 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 #clear-done { font-size: 12px; font-family: 'DM Sans', sans-serif; color: var(--text-muted); background: none; border: none; cursor: pointer; text-decoration: underline; }
 #clear-done:hover { color: var(--danger); }
 
+/* History panel */
+#history-controls { display: flex; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; align-items: center; }
+#history-date { height: 34px; padding: 0 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-muted); outline: none; flex: 1; }
+#history-search-btn { height: 34px; padding: 0 14px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; background: var(--text); color: var(--bg); border: none; border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; }
+#history-search-btn:hover { opacity: 0.85; }
+
+#history-list { flex: 1; overflow-y: auto; padding: 8px 20px 20px; }
+
+.history-day { margin-bottom: 20px; }
+.history-day-label { font-size: 12px; font-weight: 500; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+.history-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text); }
+.history-item:last-child { border-bottom: none; }
+.history-check { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.history-check::after { content:''; width:4px; height:2.5px; border-left:1.5px solid #fff; border-bottom:1.5px solid #fff; transform:rotate(-45deg) translateY(-0.5px); display:block; }
+.history-cat { font-size: 11px; padding: 2px 7px; border-radius: 99px; background: var(--border); color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
+
+#history-ask-btn { margin: 0 20px 12px; padding: 10px 16px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; background: var(--accent-light); color: var(--accent); border: 1px solid rgba(45,90,61,0.18); border-radius: var(--radius-sm); cursor: pointer; text-align: left; transition: opacity 0.15s; flex-shrink: 0; }
+#history-ask-btn:hover { opacity: 0.8; }
+
 /* Chat */
 #api-key-row { display: flex; gap: 8px; padding: 12px 20px 0; flex-shrink: 0; }
 #api-key-input { flex: 1; height: 36px; padding: 0 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); outline: none; }
@@ -147,71 +170,25 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
 
 /* Loading screen */
-#loading-screen {
-  position: fixed; inset: 0;
-  background: var(--bg);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  z-index: 999;
-  gap: 20px;
-  transition: opacity 0.4s ease;
-}
+#loading-screen { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; gap: 20px; transition: opacity 0.4s ease; }
 #loading-screen.hidden { opacity: 0; pointer-events: none; }
-
-#loading-wordmark {
-  font-family: 'DM Serif Display', serif;
-  font-size: 26px;
-  letter-spacing: -0.5px;
-  color: var(--text);
-}
-
-#loading-msg {
-  font-size: 13px;
-  color: var(--text-muted);
-  font-weight: 300;
-  text-align: center;
-  max-width: 220px;
-  line-height: 1.6;
-}
-
-#loading-dots {
-  display: flex; gap: 6px; align-items: center;
-}
-
-.dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  animation: dotPulse 1.4s infinite ease-in-out;
-}
+#loading-wordmark { font-family: 'DM Serif Display', serif; font-size: 26px; letter-spacing: -0.5px; color: var(--text); }
+#loading-msg { font-size: 13px; color: var(--text-muted); font-weight: 300; text-align: center; max-width: 220px; line-height: 1.6; }
+#loading-dots { display: flex; gap: 6px; align-items: center; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: dotPulse 1.4s infinite ease-in-out; }
 .dot:nth-child(2) { animation-delay: 0.2s; }
 .dot:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes dotPulse {
-  0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-  40% { opacity: 1; transform: scale(1); }
-}
-
-#loading-slow {
-  font-size: 12px;
-  color: var(--text-faint);
-  text-align: center;
-  max-width: 240px;
-  line-height: 1.6;
-  display: none;
-}
+@keyframes dotPulse { 0%,80%,100%{opacity:0.2;transform:scale(0.8)}40%{opacity:1;transform:scale(1)} }
+#loading-slow { font-size: 12px; color: var(--text-faint); text-align: center; max-width: 240px; line-height: 1.6; display: none; }
 </style>
 </head>
 <body>
+
 <div id="loading-screen">
   <div id="loading-wordmark">Samuel's To-Do List</div>
-  <div id="loading-dots">
-    <div class="dot"></div>
-    <div class="dot"></div>
-    <div class="dot"></div>
-  </div>
+  <div id="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
   <div id="loading-msg">Waking things up...</div>
-  <div id="loading-slow">Taking a little longer than usual — Supabase is warming up from sleep. Hang tight, this only happens after a few days of inactivity.</div>
+  <div id="loading-slow">Taking a little longer than usual — Supabase is warming up from sleep. Hang tight.</div>
 </div>
 
 <div id="shell">
@@ -225,19 +202,22 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
     <div id="today-str"></div>
     <div id="tabs">
       <button class="tab active" data-tab="tasks">Tasks</button>
+      <button class="tab" data-tab="history">History</button>
       <button class="tab" data-tab="chat">Ask Claude</button>
     </div>
   </div>
 
   <div id="panels">
 
+    <!-- Tasks -->
     <div class="panel visible" id="panel-tasks">
       <div id="add-area">
         <div id="add-row">
-          <input type="text" id="task-input" placeholder="What needs doing?" autocomplete="off" />
+          <input type="text" id="task-input" placeholder="Add task or just describe it naturally..." autocomplete="off" />
           <button id="mic-btn" title="Voice input">🎤</button>
           <button id="add-btn">Add</button>
         </div>
+        <div id="nl-preview"></div>
         <div id="task-options">
           <select class="opt-select" id="priority-select">
             <option value="">Priority</option>
@@ -271,6 +251,17 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
       </div>
     </div>
 
+    <!-- History -->
+    <div class="panel" id="panel-history">
+      <div id="history-controls">
+        <input type="month" id="history-date" class="opt-select" style="flex:1;" />
+        <button id="history-search-btn">Load</button>
+      </div>
+      <button id="history-ask-btn">✦ Ask Claude to summarize this history</button>
+      <div id="history-list"><div id="empty-state" style="text-align:center;padding:3rem 0;color:var(--text-faint);font-size:14px;">Select a month and hit Load</div></div>
+    </div>
+
+    <!-- Chat -->
     <div class="panel" id="panel-chat">
       <div id="api-key-row">
         <input type="password" id="api-key-input" placeholder="Paste Anthropic API key (sk-ant-...)" autocomplete="off" />
@@ -303,12 +294,16 @@ let apiKey = localStorage.getItem(API_KEY_STORE) || '';
 let chatHistory = [];
 let isRecording = false;
 let recognition = null;
+let nlDebounce = null;
+let nlParsed = null;
 
-// ── Sync status ───────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────
+function dateStr(d) { return d.toISOString().split('T')[0]; }
+function today() { return dateStr(new Date()); }
+
 function setSync(state, label) {
   const el = document.getElementById('sync-status');
-  el.textContent = label;
-  el.className = state;
+  el.textContent = label; el.className = state;
 }
 
 // ── Loading screen ────────────────────────────────────────
@@ -316,18 +311,57 @@ function showLoading(msg) {
   document.getElementById('loading-msg').textContent = msg;
   document.getElementById('loading-screen').classList.remove('hidden');
 }
-
 function hideLoading() {
-  const screen = document.getElementById('loading-screen');
-  screen.classList.add('hidden');
-  setTimeout(() => { screen.style.display = 'none'; }, 400);
+  const s = document.getElementById('loading-screen');
+  s.classList.add('hidden');
+  setTimeout(() => s.style.display = 'none', 400);
+}
+
+// ── Natural language parsing ──────────────────────────────
+async function parseNaturalLanguage(text) {
+  if (!apiKey || text.trim().length < 4) { nlParsed = null; hideNLPreview(); return; }
+
+  const looksNatural = /\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|urgent|asap|by|on|next week|end of|morning|evening|night)\b/i.test(text);
+  if (!looksNatural) { nlParsed = null; hideNLPreview(); return; }
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-calls': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 200,
+        system: `Parse a task description into structured fields. Today is ${today()}. Respond ONLY with a JSON object, no other text. Fields: task (clean task text, no date/priority words), due (YYYY-MM-DD or null), priority (urgent|important|low|null), recurring (daily|weekly|null).`,
+        messages: [{ role: 'user', content: text }]
+      })
+    });
+    const data = await res.json();
+    if (data.error) return;
+    const raw = data.content[0].text.replace(/```json|```/g, '').trim();
+    nlParsed = JSON.parse(raw);
+    showNLPreview(nlParsed);
+  } catch(e) { nlParsed = null; hideNLPreview(); }
+}
+
+function showNLPreview(p) {
+  const parts = [];
+  if (p.due) parts.push(`📅 ${p.due}`);
+  if (p.priority) parts.push(`${{urgent:'🔴',important:'🟡',low:'🟢'}[p.priority]} ${p.priority}`);
+  if (p.recurring) parts.push(`↻ ${p.recurring}`);
+  if (!parts.length) { hideNLPreview(); return; }
+  const el = document.getElementById('nl-preview');
+  el.textContent = `Detected: ${parts.join('  ·  ')}`;
+  el.style.display = 'block';
+}
+
+function hideNLPreview() {
+  document.getElementById('nl-preview').style.display = 'none';
 }
 
 // ── Load & subscribe ──────────────────────────────────────
 async function loadTasks() {
   setSync('', 'connecting...');
   showLoading('Waking things up...');
-
   const slowTimer = setTimeout(() => {
     document.getElementById('loading-slow').style.display = 'block';
     showLoading('Still loading...');
@@ -338,7 +372,7 @@ async function loadTasks() {
 
   if (error) { setSync('err', 'offline'); hideLoading(); return; }
   tasks = data || [];
-  checkRecurring();
+  await archiveDoneTasks();
   renderTasks();
   setSync('ok', '● live');
   hideLoading();
@@ -346,59 +380,85 @@ async function loadTasks() {
 }
 
 function subscribeToChanges() {
-  sb.channel('tasks-channel')
+  sb.channel('tasks-live')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
-      const { eventType, new: newRow, old: oldRow } = payload;
-      if (eventType === 'INSERT') {
-        if (!tasks.find(t => t.id === newRow.id)) { tasks.unshift(newRow); renderTasks(); }
-      } else if (eventType === 'UPDATE') {
-        const idx = tasks.findIndex(t => t.id === oldRow.id);
-        if (idx !== -1) { tasks[idx] = newRow; renderTasks(); }
-      } else if (eventType === 'DELETE') {
-        tasks = tasks.filter(t => t.id !== oldRow.id); renderTasks();
-      }
-    })
-    .subscribe();
+      const { eventType, new: n, old: o } = payload;
+      if (eventType === 'INSERT') { if (!tasks.find(t => t.id === n.id)) { tasks.unshift(n); renderTasks(); } }
+      else if (eventType === 'UPDATE') { const i = tasks.findIndex(t => t.id === o.id); if (i !== -1) { tasks[i] = n; renderTasks(); } }
+      else if (eventType === 'DELETE') { tasks = tasks.filter(t => t.id !== o.id); renderTasks(); }
+    }).subscribe();
 }
 
-// ── Recurring ─────────────────────────────────────────────
-function dateStr(d) { return d.toISOString().split('T')[0]; }
+// ── Archive done non-recurring tasks from previous days ───
+async function archiveDoneTasks() {
+  const todayVal = today();
+  const toArchive = tasks.filter(t => {
+    if (!t.done) return false;
+    if (t.recurring) return false;
+    const completedDate = t.completed_date || t.created?.split('T')[0];
+    return completedDate && completedDate < todayVal;
+  });
 
+  for (const t of toArchive) {
+    await sb.from('task_history').insert({
+      text: t.text, category: t.category, priority: t.priority,
+      due: t.due, completed_date: t.completed_date || todayVal,
+      created: t.created
+    });
+    await sb.from('tasks').delete().eq('id', t.id);
+  }
+
+  if (toArchive.length > 0) {
+    tasks = tasks.filter(t => !toArchive.find(a => a.id === t.id));
+  }
+}
+
+// ── Recurring reset ───────────────────────────────────────
 function checkRecurring() {
-  const today = dateStr(new Date());
+  const todayVal = today();
   tasks.forEach(t => {
     if (!t.recurring || !t.done) return;
-    let shouldReset = false;
-    if (t.recurring === 'daily' && t.last_reset !== today) shouldReset = true;
+    let reset = false;
+    if (t.recurring === 'daily' && t.last_reset !== todayVal) reset = true;
     if (t.recurring === 'weekly') {
       const last = t.last_reset ? new Date(t.last_reset) : null;
-      if (!last || (new Date() - last) >= 7*24*60*60*1000) shouldReset = true;
+      if (!last || (new Date() - last) >= 7*24*60*60*1000) reset = true;
     }
-    if (shouldReset) updateTask(t.id, { done: false, last_reset: today });
+    if (reset) updateTask(t.id, { done: false, last_reset: todayVal });
   });
 }
 
 // ── CRUD ──────────────────────────────────────────────────
-async function addTask(text) {
-  if (!text.trim()) return;
+async function addTask(rawText) {
+  if (!rawText.trim()) return;
   document.getElementById('add-btn').disabled = true;
+
+  let text = rawText.trim();
+  let priority = document.getElementById('priority-select').value || null;
+  let due = document.getElementById('due-input').value || null;
+  let recurring = document.getElementById('recur-select').value || null;
+
+  if (nlParsed) {
+    text = nlParsed.task || text;
+    priority = priority || nlParsed.priority || null;
+    due = due || nlParsed.due || null;
+    recurring = recurring || nlParsed.recurring || null;
+  }
+
   const row = {
-    id: Date.now(),
-    text: text.trim(),
-    done: false,
+    id: Date.now(), text, done: false,
     created: new Date().toISOString(),
-    priority: document.getElementById('priority-select').value || null,
-    due: document.getElementById('due-input').value || null,
-    recurring: document.getElementById('recur-select').value || null,
-    last_reset: null,
-    category: guessCategory(text)
+    priority, due, recurring, last_reset: null,
+    category: guessCategory(text),
+    completed_date: null
   };
+
   document.getElementById('priority-select').value = '';
   document.getElementById('due-input').value = '';
   document.getElementById('recur-select').value = '';
+  nlParsed = null; hideNLPreview();
 
-  const { error } = await sb.from('tasks').insert(row);
-  if (error) { setSync('err', 'save failed'); }
+  await sb.from('tasks').insert(row);
   document.getElementById('add-btn').disabled = false;
 }
 
@@ -408,29 +468,36 @@ async function updateTask(id, changes) {
 }
 
 async function deleteTask(id) {
-  const { error } = await sb.from('tasks').delete().eq('id', id);
-  if (error) setSync('err', 'delete failed');
+  await sb.from('tasks').delete().eq('id', id);
 }
 
 async function toggleTask(id) {
   const t = tasks.find(t => t.id === id);
   if (!t) return;
-  const changes = { done: !t.done };
-  if (!t.done && t.recurring) changes.last_reset = dateStr(new Date());
-  t.done = changes.done;
+  const nowDone = !t.done;
+  const changes = { done: nowDone, completed_date: nowDone ? today() : null };
+  if (nowDone && t.recurring) changes.last_reset = today();
+  t.done = nowDone;
   renderTasks();
   await updateTask(id, changes);
 }
 
 async function clearDone() {
-  const doneIds = tasks.filter(t => t.done).map(t => t.id);
-  if (!doneIds.length) return;
-  await sb.from('tasks').delete().in('id', doneIds);
+  const done = tasks.filter(t => t.done);
+  for (const t of done) {
+    if (!t.recurring) {
+      await sb.from('task_history').insert({
+        text: t.text, category: t.category, priority: t.priority,
+        due: t.due, completed_date: t.completed_date || today(), created: t.created
+      });
+    }
+    await sb.from('tasks').delete().eq('id', t.id);
+  }
 }
 
-// ── Category guess ────────────────────────────────────────
+// ── Category ──────────────────────────────────────────────
 function guessCategory(text) {
-  if (/study|exam|class|lecture|assignment|homework|nyu|course|reading|textbook|quiz/i.test(text)) return 'academic';
+  if (/study|exam|class|lecture|assignment|homework|nyu|course|textbook|quiz/i.test(text)) return 'academic';
   if (/apply|resume|interview|internship|linkedin|cover letter|career|job/i.test(text)) return 'career';
   if (/gym|workout|run|lift|train|exercise|cardio|physique|bodybuilding/i.test(text)) return 'fitness';
   if (/read|book|article|chapter|podcast|pages/i.test(text)) return 'reading';
@@ -441,31 +508,30 @@ function guessCategory(text) {
 // ── Due date ──────────────────────────────────────────────
 function getDueStatus(due) {
   if (!due) return null;
-  const today = dateStr(new Date());
-  if (due < today) return 'overdue';
-  if (due === today) return 'today';
+  const t = today();
+  if (due < t) return 'overdue';
+  if (due === t) return 'today';
   return 'upcoming';
 }
 
 function formatDueTag(due) {
-  const status = getDueStatus(due);
-  if (!status) return '';
-  const d = new Date(due + 'T12:00:00');
-  const label = d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
-  if (status === 'overdue') return `<span class="tag overdue">Overdue · ${label}</span>`;
-  if (status === 'today') return `<span class="tag duetoday">Due today</span>`;
+  const s = getDueStatus(due);
+  if (!s) return '';
+  const label = new Date(due + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  if (s === 'overdue') return `<span class="tag overdue">Overdue · ${label}</span>`;
+  if (s === 'today') return `<span class="tag duetoday">Due today</span>`;
   return `<span class="tag upcoming">${label}</span>`;
 }
 
-// ── Render ────────────────────────────────────────────────
+// ── Render tasks ──────────────────────────────────────────
 function getVisible() {
-  const today = dateStr(new Date());
-  return tasks.filter(t => {
-    if (filter === 'active') return !t.done;
-    if (filter === 'done') return t.done;
-    if (filter === 'urgent') return t.priority === 'urgent' && !t.done;
-    if (filter === 'today') return t.due === today && !t.done;
-    if (filter === 'overdue') return t.due && t.due < today && !t.done;
+  const t = today();
+  return tasks.filter(task => {
+    if (filter === 'active') return !task.done;
+    if (filter === 'done') return task.done;
+    if (filter === 'urgent') return task.priority === 'urgent' && !task.done;
+    if (filter === 'today') return task.due === t && !task.done;
+    if (filter === 'overdue') return task.due && task.due < t && !task.done;
     return true;
   });
 }
@@ -473,15 +539,15 @@ function getVisible() {
 function renderTasks() {
   const visible = getVisible();
   const list = document.getElementById('task-list');
-  const priorityLabels = { urgent:'🔴 Urgent', important:'🟡 Important', low:'🟢 Low' };
+  const pl = { urgent:'🔴 Urgent', important:'🟡 Important', low:'🟢 Low' };
 
-  if (visible.length === 0) {
+  if (!visible.length) {
     const msgs = { all:'Nothing here yet', active:'All done! 🎉', done:'No completed tasks', urgent:'No urgent tasks', today:'Nothing due today', overdue:'No overdue tasks' };
     list.innerHTML = `<div id="empty-state">${msgs[filter]||'Nothing here'}</div>`;
   } else {
     list.innerHTML = visible.map(t => {
       const tags = [
-        t.priority ? `<span class="tag ${t.priority}">${priorityLabels[t.priority]}</span>` : '',
+        t.priority ? `<span class="tag ${t.priority}">${pl[t.priority]}</span>` : '',
         t.due ? formatDueTag(t.due) : '',
         t.category ? `<span class="tag cat">${t.category}</span>` : '',
         t.recurring ? `<span class="tag recur">↻ ${t.recurring}</span>` : ''
@@ -498,15 +564,73 @@ function renderTasks() {
   }
 
   const active = tasks.filter(t => !t.done).length;
-  const today = dateStr(new Date());
-  const overdue = tasks.filter(t => t.due && t.due < today && !t.done).length;
+  const t = today();
+  const overdue = tasks.filter(t2 => t2.due && t2.due < t && !t2.done).length;
   document.getElementById('count-label').textContent = `${active} remaining${overdue ? ' · ' + overdue + ' overdue' : ''}`;
 }
 
-function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function setToday() {
-  document.getElementById('today-str').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+// ── History ───────────────────────────────────────────────
+let historyData = [];
+
+async function loadHistory() {
+  const monthVal = document.getElementById('history-date').value;
+  if (!monthVal) return;
+  const [year, month] = monthVal.split('-');
+  const start = `${year}-${month}-01`;
+  const end = `${year}-${month}-31`;
+
+  const { data, error } = await sb.from('task_history')
+    .select('*')
+    .gte('completed_date', start)
+    .lte('completed_date', end)
+    .order('completed_date', { ascending: false });
+
+  if (error) { document.getElementById('history-list').innerHTML = '<div id="empty-state" style="text-align:center;padding:3rem 0;color:var(--text-faint);font-size:14px;">Error loading history</div>'; return; }
+
+  historyData = data || [];
+  renderHistory();
 }
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (!historyData.length) {
+    list.innerHTML = '<div id="empty-state" style="text-align:center;padding:3rem 0;color:var(--text-faint);font-size:14px;">No completed tasks this month</div>';
+    return;
+  }
+
+  const grouped = {};
+  historyData.forEach(item => {
+    const d = item.completed_date;
+    if (!grouped[d]) grouped[d] = [];
+    grouped[d].push(item);
+  });
+
+  list.innerHTML = Object.keys(grouped).sort((a,b) => b.localeCompare(a)).map(date => {
+    const label = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+    const items = grouped[date].map(item =>
+      `<div class="history-item">
+        <div class="history-check"></div>
+        <span>${escHtml(item.text)}</span>
+        ${item.category ? `<span class="history-cat">${item.category}</span>` : ''}
+      </div>`
+    ).join('');
+    return `<div class="history-day"><div class="history-day-label">${label}</div>${items}</div>`;
+  }).join('');
+}
+
+document.getElementById('history-search-btn').addEventListener('click', loadHistory);
+
+document.getElementById('history-ask-btn').addEventListener('click', () => {
+  if (!historyData.length) { alert('Load a month of history first.'); return; }
+  const monthVal = document.getElementById('history-date').value;
+  const summary = historyData.map(i => `- ${i.text} [${i.category}] [${i.completed_date}]`).join('\n');
+  const prompt = `Here's my completed task history for ${monthVal}:\n\n${summary}\n\nGive me a thoughtful summary: what did I get done, which categories dominated my time, any patterns you notice, and what it says about how I spent this period. Be direct and specific.`;
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+  document.querySelector('[data-tab="chat"]').classList.add('active');
+  document.getElementById('panel-chat').classList.add('visible');
+  callClaude(prompt);
+});
 
 // ── Tabs ──────────────────────────────────────────────────
 document.querySelectorAll('.tab').forEach(btn => {
@@ -527,13 +651,19 @@ document.getElementById('filter-row').addEventListener('click', e => {
   renderTasks();
 });
 
-// ── Add ───────────────────────────────────────────────────
+// ── Add task ──────────────────────────────────────────────
 document.getElementById('add-btn').addEventListener('click', () => {
   const inp = document.getElementById('task-input');
   addTask(inp.value); inp.value = '';
 });
 document.getElementById('task-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') { addTask(e.target.value); e.target.value = ''; }
+});
+
+// Natural language debounce
+document.getElementById('task-input').addEventListener('input', e => {
+  clearTimeout(nlDebounce);
+  nlDebounce = setTimeout(() => parseNaturalLanguage(e.target.value), 600);
 });
 
 document.getElementById('task-list').addEventListener('click', e => {
@@ -550,7 +680,7 @@ document.getElementById('clear-done').addEventListener('click', clearDone);
 // ── Voice ─────────────────────────────────────────────────
 document.getElementById('mic-btn').addEventListener('click', () => {
   if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-    alert('Voice input not supported in this browser. Try Chrome or Safari.'); return;
+    alert('Voice input not supported here. Try Chrome or Safari.'); return;
   }
   if (isRecording) { recognition && recognition.stop(); return; }
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -572,25 +702,25 @@ function updateKeyStatus() {
 document.getElementById('save-key-btn').addEventListener('click', () => {
   const val = document.getElementById('api-key-input').value.trim();
   if (val.startsWith('sk-')) { apiKey = val; localStorage.setItem(API_KEY_STORE, apiKey); document.getElementById('api-key-input').value = ''; updateKeyStatus(); }
-  else { document.getElementById('key-status').textContent = 'Invalid key — should start with sk-ant-'; document.getElementById('key-status').style.color = 'var(--danger)'; }
+  else { document.getElementById('key-status').textContent = 'Invalid — should start with sk-ant-'; document.getElementById('key-status').style.color = 'var(--danger)'; }
 });
 
 // ── Claude ────────────────────────────────────────────────
 function buildTaskContext() {
   if (!tasks.length) return 'Samuel has no tasks.';
-  const today = dateStr(new Date());
-  const active = tasks.filter(t => !t.done);
-  const done = tasks.filter(t => t.done);
-  const overdue = active.filter(t => t.due && t.due < today);
-  const dueToday = active.filter(t => t.due === today);
-  const urgent = active.filter(t => t.priority === 'urgent' && !overdue.includes(t) && !dueToday.includes(t));
-  const rest = active.filter(t => !overdue.includes(t) && !dueToday.includes(t) && !urgent.includes(t));
+  const t = today();
+  const active = tasks.filter(x => !x.done);
+  const done = tasks.filter(x => x.done);
+  const overdue = active.filter(x => x.due && x.due < t);
+  const dueToday = active.filter(x => x.due === t);
+  const urgent = active.filter(x => x.priority === 'urgent' && !overdue.includes(x) && !dueToday.includes(x));
+  const rest = active.filter(x => !overdue.includes(x) && !dueToday.includes(x) && !urgent.includes(x));
   let ctx = `Samuel's tasks — ${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}:\n\n`;
-  if (overdue.length) { ctx += `OVERDUE:\n`; overdue.forEach(t => { ctx += `- ${t.text} [due ${t.due}] [${t.priority||'no priority'}] [${t.category}]\n`; }); ctx += '\n'; }
-  if (dueToday.length) { ctx += `DUE TODAY:\n`; dueToday.forEach(t => { ctx += `- ${t.text} [${t.priority||'no priority'}] [${t.category}]\n`; }); ctx += '\n'; }
-  if (urgent.length) { ctx += `URGENT:\n`; urgent.forEach(t => { ctx += `- ${t.text}${t.due?' [due '+t.due+']':''} [${t.category}]\n`; }); ctx += '\n'; }
-  if (rest.length) { ctx += `OTHER ACTIVE:\n`; rest.forEach(t => { ctx += `- ${t.text}${t.priority?' ['+t.priority+']':''}${t.due?' [due '+t.due+']':''}${t.recurring?' ['+t.recurring+']':''} [${t.category}]\n`; }); ctx += '\n'; }
-  if (done.length) { ctx += `COMPLETED (${done.length} total)\n`; }
+  if (overdue.length) { ctx += `OVERDUE:\n`; overdue.forEach(x => { ctx += `- ${x.text} [due ${x.due}] [${x.priority||'no priority'}] [${x.category}]\n`; }); ctx += '\n'; }
+  if (dueToday.length) { ctx += `DUE TODAY:\n`; dueToday.forEach(x => { ctx += `- ${x.text} [${x.priority||'no priority'}] [${x.category}]\n`; }); ctx += '\n'; }
+  if (urgent.length) { ctx += `URGENT:\n`; urgent.forEach(x => { ctx += `- ${x.text}${x.due?' [due '+x.due+']':''} [${x.category}]\n`; }); ctx += '\n'; }
+  if (rest.length) { ctx += `OTHER ACTIVE:\n`; rest.forEach(x => { ctx += `- ${x.text}${x.priority?' ['+x.priority+']':''}${x.due?' [due '+x.due+']':''}${x.recurring?' ['+x.recurring+']':''} [${x.category}]\n`; }); ctx += '\n'; }
+  if (done.length) { ctx += `COMPLETED TODAY (${done.length})\n`; }
   return ctx;
 }
 
@@ -602,7 +732,7 @@ async function callClaude(userMessage) {
   document.getElementById('send-btn').disabled = true;
   document.getElementById('briefing-btn').disabled = true;
 
-  const system = `You are Samuel's personal productivity assistant inside his to-do app. You have full real-time visibility into his synced task list. Samuel is an NYU real estate student with an active internship search. Be concise, warm, and direct — like a smart friend, not a corporate tool. Plain text only, no markdown.\n\n${buildTaskContext()}`;
+  const system = `You are Samuel's personal productivity assistant inside his to-do app. You have full real-time visibility into his synced task list and completed task history. Samuel is an NYU real estate student with an active internship search. Be concise, warm, and direct — like a smart friend. Plain text only, no markdown.\n\n${buildTaskContext()}`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -614,10 +744,8 @@ async function callClaude(userMessage) {
     typingEl.remove();
     if (data.error) { appendMsg('ai', `Error: ${data.error.message}`); }
     else { const reply = data.content[0].text; appendMsg('ai', reply); chatHistory.push({ role: 'assistant', content: reply }); }
-  } catch(e) {
-    typingEl.remove();
-    appendMsg('ai', 'Something went wrong. Check your API key and try again.');
-  }
+  } catch(e) { typingEl.remove(); appendMsg('ai', 'Something went wrong. Check your API key and try again.'); }
+
   document.getElementById('send-btn').disabled = false;
   document.getElementById('briefing-btn').disabled = false;
 }
@@ -641,12 +769,19 @@ async function sendMessage() {
 }
 
 document.getElementById('briefing-btn').addEventListener('click', () => {
-  const today = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
-  callClaude(`Give me my daily briefing for ${today}. What's overdue, what's due today, top priorities, and one quick win I can knock out fast. Under 120 words, friendly tone.`);
+  callClaude(`Give me my daily briefing for ${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}. What's overdue, what's due today, top priorities, and one quick win. Under 120 words, friendly tone.`);
 });
 
 document.getElementById('send-btn').addEventListener('click', sendMessage);
 document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function setToday() {
+  document.getElementById('today-str').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  const m = new Date(); m.setDate(1);
+  document.getElementById('history-date').value = m.toISOString().slice(0,7);
+}
 
 if ('standalone' in navigator && !navigator.standalone && /iPhone|iPad/.test(navigator.userAgent)) {
   document.getElementById('install-bar').style.display = 'block';
