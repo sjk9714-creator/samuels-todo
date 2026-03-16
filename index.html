@@ -395,22 +395,37 @@ async function archiveDoneTasks() {
   const toArchive = tasks.filter(t => {
     if (!t.done) return false;
     if (t.recurring) return false;
-    const completedDate = t.completed_date || t.created?.split('T')[0];
-    return completedDate && completedDate < todayVal;
+    const completedDate = t.completed_date || t.created?.split('T')[0] || '';
+    return completedDate < todayVal;
   });
 
+  if (!toArchive.length) return;
+
   for (const t of toArchive) {
+    const completedOn = t.completed_date || t.created?.split('T')[0] || todayVal;
     await sb.from('task_history').insert({
       text: t.text, category: t.category, priority: t.priority,
-      due: t.due, completed_date: t.completed_date || todayVal,
-      created: t.created
+      due: t.due, completed_date: completedOn, created: t.created
     });
     await sb.from('tasks').delete().eq('id', t.id);
   }
 
-  if (toArchive.length > 0) {
-    tasks = tasks.filter(t => !toArchive.find(a => a.id === t.id));
-  }
+  tasks = tasks.filter(t => !toArchive.find(a => a.id === t.id));
+  renderTasks();
+}
+
+// ── Schedule archive to run at midnight ──────────────────
+function scheduleMidnightArchive() {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setDate(midnight.getDate() + 1);
+  midnight.setHours(0, 0, 30, 0);
+  const msUntilMidnight = midnight - now;
+  setTimeout(async () => {
+    await archiveDoneTasks();
+    checkRecurring();
+    scheduleMidnightArchive();
+  }, msUntilMidnight);
 }
 
 // ── Recurring reset ───────────────────────────────────────
@@ -790,6 +805,7 @@ if ('standalone' in navigator && !navigator.standalone && /iPhone|iPad/.test(nav
 setToday();
 updateKeyStatus();
 loadTasks();
+scheduleMidnightArchive();
 </script>
 </body>
 </html>
