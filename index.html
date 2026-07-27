@@ -2,11 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
   <title>Samuel's To-Do List</title>
+
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#F7F5F0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#141412" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="To-Do">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" href="/icon-192.png" type="image/png">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- deferred: runs after parsing but before DOMContentLoaded, so it no longer blocks first paint -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -36,6 +48,7 @@
     #today-str { font-size: 12px; color: var(--text-muted); margin-top: 1px; font-weight: 300; }
     #sync-status { font-size: 11px; color: var(--text-faint); }
     #sync-status.ok { color: var(--accent); }
+    #sync-status.warn { color: var(--important-text); }
     #sync-status.err { color: var(--danger); }
     #tabs { display: flex; gap: 0; margin-top: 16px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
     #tabs::-webkit-scrollbar { display: none; }
@@ -59,8 +72,6 @@
     #add-btn:hover { opacity: 0.85; }
     #add-btn:disabled { opacity: 0.4; cursor: default; }
 
-    /* NL preview */
-    #nl-preview { display: none; margin-top: 8px; padding: 8px 12px; background: var(--accent-light); border-radius: var(--radius-sm); font-size: 12px; color: var(--accent); line-height: 1.5; }
     #task-options { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
     .opt-select { height: 30px; padding: 0 8px; font-family: 'DM Sans', sans-serif; font-size: 12px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-muted); outline: none; cursor: pointer; }
     .opt-select:focus { border-color: var(--accent); }
@@ -71,7 +82,9 @@
     .filter-pill.active { background: var(--text); color: var(--bg); border-color: var(--text); }
 
     #task-list { flex: 1; overflow-y: auto; padding: 4px 20px 20px; }
-    .task { display: flex; align-items: flex-start; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); animation: fadeIn 0.2s ease; }
+    .task { display: flex; align-items: flex-start; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+    /* only genuinely new rows animate — previously every row re-ran this on every render */
+    .task.is-new { animation: fadeIn 0.2s ease; }
     @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none} }
     .task:last-child { border-bottom: none; }
     .task.done { opacity: 0.45; }
@@ -112,11 +125,11 @@
     .history-check::after { content:''; width:4px; height:2.5px; border-left:1.5px solid #fff; border-bottom:1.5px solid #fff; transform:rotate(-45deg) translateY(-0.5px); display:block; }
     .history-cat { font-size: 11px; padding: 2px 7px; border-radius: 99px; background: var(--border); color: var(--text-muted); margin-left: auto; flex-shrink: 0; }
 
-    /* ── News panel ─────────────────────────────────────── */
+    /* News panel */
     #news-filter-row { display: flex; gap: 6px; padding: 10px 20px; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
     #news-filter-row::-webkit-scrollbar { display: none; }
     #news-list { flex: 1; overflow-y: auto; padding: 4px 20px 20px; }
-    .news-item { padding: 14px 0; border-bottom: 1px solid var(--border); animation: fadeIn 0.2s ease; }
+    .news-item { padding: 14px 0; border-bottom: 1px solid var(--border); }
     .news-item:last-child { border-bottom: none; }
     .news-headline { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.4; }
     .news-summary { font-size: 13px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
@@ -184,7 +197,6 @@
             <button id="mic-btn" title="Voice input">🎤</button>
             <button id="add-btn">Add</button>
           </div>
-          <div id="nl-preview"></div>
           <div id="task-options">
             <select class="opt-select" id="priority-select">
               <option value="">Priority</option>
@@ -220,7 +232,7 @@
         <div id="news-filter-row">
           <button class="filter-pill active" data-news-filter="all">All</button>
           <button class="filter-pill" data-news-filter="CRE">CRE</button>
-          <button class="filter-pill" data-news-filter="Capital Markets">Markets</button>
+          <button class="filter-pill" data-news-filter="Markets">Markets</button>
           <button class="filter-pill" data-news-filter="RE Tech">RE Tech</button>
           <button class="filter-pill" data-news-filter="NYC/LA">NYC/LA</button>
           <button class="filter-pill" data-news-filter="General">General</button>
@@ -235,168 +247,254 @@
           <input type="month" id="history-date" class="opt-select" style="flex:1;" />
           <button id="history-search-btn">Load</button>
         </div>
-        <div id="history-list"><div id="empty-state" style="text-align:center;padding:3rem 0;color:var(--text-faint);font-size:14px;">Select a month and hit Load</div></div>
+        <div id="history-list"><div id="empty-state">Select a month and hit Load</div></div>
       </div>
     </div>
   </div>
 
   <script>
+  document.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://rtgtgjcfaabdvumqtwgl.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0Z3RnamNmYWFiZHZ1bXF0d2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDY1NjAsImV4cCI6MjA4ODkyMjU2MH0.IcdGUydtjwS1aYzZGv32GesRcOe3YafgQ0P_CeJyS2A';
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const CACHE_KEY = 'todo.tasks.v1';
+    const $ = id => document.getElementById(id);
+    // If the CDN client is unreachable (first offline open), fall through to a
+    // read-only view of the cached list instead of throwing on boot.
+    const sb = (typeof supabase !== 'undefined' && supabase.createClient)
+      ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+      : null;
 
     let tasks = [];
     let filter = 'all';
     let newsFilter = 'all';
     let newsItems = [];
+    let newsLoaded = false;
+    let historyData = [];
     let isRecording = false;
     let recognition = null;
-    let nlDebounce = null;
-    let nlParsed = null;
+    let rolloverDay = null;        // local date the last rollover ran for
+    let refreshing = false;
+    let renderedIds = new Set();   // drives the enter animation
+    let channel = null;
+    let retryCount = 0;
 
     // ── Helpers ───────────────────────────────────────────
-    function dateStr(d) { return d.toISOString().split('T')[0]; }
-    function today() { return dateStr(new Date()); }
-    function setSync(state, label) {
-      const el = document.getElementById('sync-status');
-      el.textContent = label; el.className = state;
+    // Local calendar date. The old version used toISOString(), which is UTC —
+    // after ~8pm Eastern that returned tomorrow, so a task completed in the
+    // evening was stamped with the wrong day and never came back.
+    function dateStr(d) {
+      return d.getFullYear() + '-' +
+             String(d.getMonth() + 1).padStart(2, '0') + '-' +
+             String(d.getDate()).padStart(2, '0');
     }
-    function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function today() { return dateStr(new Date()); }
+
+    function setSync(state, label) {
+      const el = $('sync-status');
+      el.textContent = label;
+      el.className = state;
+    }
+    function escHtml(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    // only http(s) may reach an href; blocks javascript: and data: URLs
+    function safeUrl(u) {
+      try {
+        const p = new URL(u);
+        return (p.protocol === 'http:' || p.protocol === 'https:') ? p.href : null;
+      } catch { return null; }
+    }
+    function prettyDate(ymd) {
+      const d = new Date(ymd + 'T12:00:00');
+      return isNaN(d) ? ymd : d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+    }
+
+    // ── Local cache: paints instantly, survives a cold/offline start ───
+    function readCache() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(CACHE_KEY));
+        return Array.isArray(raw?.tasks) ? raw.tasks : null;
+      } catch { return null; }
+    }
+    function writeCache() {
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ tasks, savedAt: Date.now() })); } catch {}
+    }
 
     // ── Loading screen ────────────────────────────────────
     function showLoading(msg) {
-      document.getElementById('loading-msg').textContent = msg;
-      document.getElementById('loading-screen').classList.remove('hidden');
+      const s = $('loading-screen');
+      $('loading-msg').textContent = msg;
+      s.style.display = 'flex';
+      s.classList.remove('hidden');
+      delete s.dataset.hidden;
     }
     function hideLoading() {
-      const s = document.getElementById('loading-screen');
+      const s = $('loading-screen');
+      if (s.dataset.hidden === '1') return;
+      s.dataset.hidden = '1';
       s.classList.add('hidden');
-      setTimeout(() => s.style.display = 'none', 400);
+      setTimeout(() => { s.style.display = 'none'; }, 400);
     }
 
-    // ── Load & subscribe ──────────────────────────────────
-    async function loadTasks() {
-      setSync('', 'connecting...');
-      showLoading('Waking things up...');
-      const slowTimer = setTimeout(() => {
-        document.getElementById('loading-slow').style.display = 'block';
-        showLoading('Still loading...');
-      }, 4000);
-      const { data, error } = await sb.from('tasks').select('*').order('id', { ascending: false });
-      clearTimeout(slowTimer);
-      if (error) { setSync('err', 'offline'); hideLoading(); return; }
-      tasks = data || [];
-      await archiveDoneTasks();
-      renderTasks();
-      setSync('ok', '● live');
-      hideLoading();
-      subscribeToChanges();
+    // ── Sync ──────────────────────────────────────────────
+    // One RPC does the day-boundary rollover (reset recurring, archive stale)
+    // and returns the resulting list, so this is a single round trip.
+    async function refresh({ initial = false } = {}) {
+      if (!sb) { setSync('err', tasks.length ? 'offline · cached' : 'offline'); hideLoading(); return; }
+      if (refreshing) return;
+      refreshing = true;
+      let slowTimer = null;
+      if (initial && !tasks.length) {
+        slowTimer = setTimeout(() => {
+          $('loading-slow').style.display = 'block';
+          showLoading('Still loading...');
+        }, 4000);
+      }
+      try {
+        const { data, error } = await sb.rpc('daily_rollover', { p_today: today() });
+        if (error) throw error;
+        tasks = data || [];
+        rolloverDay = today();
+        renderTasks();
+        writeCache();
+        setSync('ok', '● live');
+      } catch (err) {
+        console.error('refresh failed:', err);
+        setSync('err', tasks.length ? 'offline · cached' : 'offline');
+      } finally {
+        if (slowTimer) clearTimeout(slowTimer);
+        refreshing = false;
+        hideLoading();
+      }
     }
 
-    function subscribeToChanges() {
-      sb.channel('tasks-live')
+    function subscribe() {
+      if (!sb) return;
+      if (channel) { sb.removeChannel(channel); channel = null; }
+      channel = sb.channel('tasks-live')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
           const { eventType, new: n, old: o } = payload;
-          if (eventType === 'INSERT') { if (!tasks.find(t => t.id === n.id)) { tasks.unshift(n); renderTasks(); } }
-          else if (eventType === 'UPDATE') { const i = tasks.findIndex(t => t.id === o.id); if (i !== -1) { tasks[i] = n; renderTasks(); } }
-          else if (eventType === 'DELETE') { tasks = tasks.filter(t => t.id !== o.id); renderTasks(); }
-        }).subscribe();
-
-      sb.channel('news-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_news' }, () => { loadNews(); })
-        .subscribe();
+          if (eventType === 'INSERT') {
+            if (!tasks.some(t => t.id === n.id)) tasks.unshift(n);
+          } else if (eventType === 'UPDATE') {
+            const i = tasks.findIndex(t => t.id === n.id);
+            if (i !== -1) tasks[i] = n;
+          } else if (eventType === 'DELETE') {
+            tasks = tasks.filter(t => t.id !== o.id);
+          }
+          renderTasks();
+          writeCache();
+        })
+        .subscribe(status => {
+          if (status === 'SUBSCRIBED') {
+            retryCount = 0;
+            setSync('ok', '● live');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            // the old version claimed "● live" forever after the socket died
+            setSync('warn', 'reconnecting...');
+            const delay = Math.min(30000, 1000 * Math.pow(2, retryCount++));
+            setTimeout(subscribe, delay);
+          }
+        });
     }
 
-    // ── Archive done non-recurring tasks from previous days
-    async function archiveDoneTasks() {
-      const todayVal = today();
-      const toArchive = tasks.filter(t => {
-        if (!t.done) return false;
-        if (t.recurring) return false;
-        const completedDate = t.completed_date || t.created?.split('T')[0] || '';
-        return completedDate < todayVal;
-      });
-      if (!toArchive.length) return;
-      for (const t of toArchive) {
-        const completedOn = t.completed_date || t.created?.split('T')[0] || todayVal;
-        await sb.from('task_history').insert({ text: t.text, category: t.category, priority: t.priority, due: t.due, completed_date: completedOn, created: t.created });
-        await sb.from('tasks').delete().eq('id', t.id);
-      }
-      tasks = tasks.filter(t => !toArchive.find(a => a.id === t.id));
-      renderTasks();
-    }
-
-    function scheduleMidnightArchive() {
-      const now = new Date();
-      const midnight = new Date(now);
-      midnight.setDate(midnight.getDate() + 1);
-      midnight.setHours(0, 0, 30, 0);
-      setTimeout(async () => {
-        await archiveDoneTasks();
-        checkRecurring();
-        scheduleMidnightArchive();
-      }, midnight - now);
-    }
-
-    function checkRecurring() {
-      const todayVal = today();
-      tasks.forEach(t => {
-        if (!t.recurring || !t.done) return;
-        let reset = false;
-        if (t.recurring === 'daily' && t.last_reset !== todayVal) reset = true;
-        if (t.recurring === 'weekly') {
-          const last = t.last_reset ? new Date(t.last_reset) : null;
-          if (!last || (new Date() - last) >= 7*24*60*60*1000) reset = true;
-        }
-        if (reset) updateTask(t.id, { done: false, last_reset: todayVal });
-      });
+    // Resume, reconnect and midnight all funnel through refresh(). The old
+    // build relied solely on a setTimeout scheduled for midnight, which never
+    // fires on a phone because the page is frozen the moment it backgrounds.
+    function startWatchers() {
+      subscribe();
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+      window.addEventListener('online', () => refresh());
+      setInterval(() => { if (today() !== rolloverDay) refresh(); }, 60000);
     }
 
     // ── CRUD ──────────────────────────────────────────────
     async function addTask(rawText) {
-      if (!rawText.trim()) return;
-      document.getElementById('add-btn').disabled = true;
-      let text = rawText.trim();
-      let priority = document.getElementById('priority-select').value || null;
-      let due = document.getElementById('due-input').value || null;
-      let recurring = document.getElementById('recur-select').value || null;
-      if (nlParsed) {
-        text = nlParsed.task || text;
-        priority = priority || nlParsed.priority || null;
-        due = due || nlParsed.due || null;
-        recurring = recurring || nlParsed.recurring || null;
+      const text = (rawText || '').trim();
+      if (!text) return;
+      if (!sb) { setSync('err', 'offline — cannot add'); return; }
+      const btn = $('add-btn');
+      btn.disabled = true;
+      // id and created are assigned server-side now, not from the client clock
+      const row = {
+        text,
+        done: false,
+        priority: $('priority-select').value || null,
+        due: $('due-input').value || null,
+        recurring: $('recur-select').value || null,
+        last_reset: null,
+        completed_date: null,
+        category: guessCategory(text)
+      };
+      try {
+        const { data, error } = await sb.from('tasks').insert(row).select().single();
+        if (error) throw error;
+        // add locally too, so the task appears even if realtime is asleep
+        if (data && !tasks.some(t => t.id === data.id)) {
+          tasks.unshift(data);
+          renderTasks();
+          writeCache();
+        }
+        $('priority-select').value = '';
+        $('due-input').value = '';
+        $('recur-select').value = '';
+        $('task-input').value = '';
+      } catch (err) {
+        console.error('add failed:', err);
+        setSync('err', 'add failed');
+        $('task-input').value = text;   // don't silently eat what he typed
+      } finally {
+        btn.disabled = false;
       }
-      const row = { id: Date.now(), text, done: false, created: new Date().toISOString(), priority, due, recurring, last_reset: null, category: guessCategory(text), completed_date: null };
-      document.getElementById('priority-select').value = '';
-      document.getElementById('due-input').value = '';
-      document.getElementById('recur-select').value = '';
-      nlParsed = null; hideNLPreview();
-      await sb.from('tasks').insert(row);
-      document.getElementById('add-btn').disabled = false;
     }
 
-    async function updateTask(id, changes) {
-      const { error } = await sb.from('tasks').update(changes).eq('id', id);
-      if (error) setSync('err', 'sync error');
-    }
-    async function deleteTask(id) { await sb.from('tasks').delete().eq('id', id); }
     async function toggleTask(id) {
+      if (!sb) { setSync('err', 'offline — read only'); return; }
       const t = tasks.find(t => t.id === id);
       if (!t) return;
       const nowDone = !t.done;
       const changes = { done: nowDone, completed_date: nowDone ? today() : null };
       if (nowDone && t.recurring) changes.last_reset = today();
-      t.done = nowDone; renderTasks();
-      await updateTask(id, changes);
-    }
-    async function clearDone() {
-      const done = tasks.filter(t => t.done);
-      for (const t of done) {
-        if (!t.recurring) {
-          await sb.from('task_history').insert({ text: t.text, category: t.category, priority: t.priority, due: t.due, completed_date: t.completed_date || today(), created: t.created });
-        }
-        await sb.from('tasks').delete().eq('id', t.id);
+      const before = { done: t.done, completed_date: t.completed_date, last_reset: t.last_reset };
+      Object.assign(t, changes);
+      renderTasks();
+      writeCache();
+      const { error } = await sb.from('tasks').update(changes).eq('id', id);
+      if (error) {                       // roll the optimistic update back
+        Object.assign(t, before);
+        renderTasks();
+        writeCache();
+        setSync('err', 'sync error');
       }
+    }
+
+    async function deleteTask(id) {
+      if (!sb) { setSync('err', 'offline — read only'); return; }
+      const idx = tasks.findIndex(t => t.id === id);
+      if (idx === -1) return;
+      const removed = tasks[idx];
+      tasks.splice(idx, 1);
+      renderTasks();
+      writeCache();
+      const { error } = await sb.from('tasks').delete().eq('id', id);
+      if (error) {
+        tasks.splice(idx, 0, removed);
+        renderTasks();
+        writeCache();
+        setSync('err', 'sync error');
+      }
+    }
+
+    // Archives completed one-off tasks and *resets* recurring ones. The old
+    // loop deleted recurring tasks outright, so clearing completed while a
+    // daily was checked off destroyed it permanently.
+    async function clearDone() {
+      if (!sb) { setSync('err', 'offline — read only'); return; }
+      const { error } = await sb.rpc('clear_done_tasks', { p_today: today() });
+      if (error) { console.error('clear failed:', error); setSync('err', 'sync error'); return; }
+      await refresh();
     }
 
     function guessCategory(text) {
@@ -408,19 +506,11 @@
       return 'personal';
     }
 
-    function getDueStatus(due) {
-      if (!due) return null;
-      const t = today();
-      if (due < t) return 'overdue';
-      if (due === t) return 'today';
-      return 'upcoming';
-    }
     function formatDueTag(due) {
-      const s = getDueStatus(due);
-      if (!s) return '';
+      const t = today();
       const label = new Date(due + 'T12:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric' });
-      if (s === 'overdue') return `<span class="tag overdue">Overdue · ${label}</span>`;
-      if (s === 'today') return `<span class="tag duetoday">Due today</span>`;
+      if (due < t) return `<span class="tag overdue">Overdue · ${label}</span>`;
+      if (due === t) return `<span class="tag duetoday">Due today</span>`;
       return `<span class="tag upcoming">${label}</span>`;
     }
 
@@ -436,91 +526,179 @@
         return true;
       });
     }
+
     function renderTasks() {
       const visible = getVisible();
-      const list = document.getElementById('task-list');
+      const list = $('task-list');
       const pl = { urgent:'🔴 Urgent', important:'🟡 Important', low:'🟢 Low' };
+      const seen = new Set();
+
       if (!visible.length) {
-        const msgs = { all:'Nothing here yet', active:'All done! 🎉', done:'No completed tasks', urgent:'No urgent tasks', today:'Nothing due today', overdue:'No overdue tasks' };
-        list.innerHTML = `<div id="empty-state">${msgs[filter]||'Nothing here'}</div>`;
+        const msgs = { all:'Nothing here yet', active:'All done! 🎉', done:'No completed tasks',
+                       urgent:'No urgent tasks', today:'Nothing due today', overdue:'No overdue tasks' };
+        list.innerHTML = `<div id="empty-state">${msgs[filter] || 'Nothing here'}</div>`;
       } else {
         list.innerHTML = visible.map(t => {
+          seen.add(t.id);
+          const isNew = renderedIds.size && !renderedIds.has(t.id);
           const tags = [
-            t.priority ? `<span class="tag ${t.priority}">${pl[t.priority]}</span>` : '',
+            t.priority ? `<span class="tag ${escHtml(t.priority)}">${pl[t.priority] || escHtml(t.priority)}</span>` : '',
             t.due ? formatDueTag(t.due) : '',
-            t.category ? `<span class="tag cat">${t.category}</span>` : '',
-            t.recurring ? `<span class="tag recur">↻ ${t.recurring}</span>` : ''
+            t.category ? `<span class="tag cat">${escHtml(t.category)}</span>` : '',
+            t.recurring ? `<span class="tag recur">↻ ${escHtml(t.recurring)}</span>` : ''
           ].filter(Boolean).join('');
-          return `<div class="task${t.done?' done':''}" data-id="${t.id}">
-            <button class="check${t.done?' done':''}" data-action="toggle"></button>
+          return `<div class="task${t.done ? ' done' : ''}${isNew ? ' is-new' : ''}" data-id="${t.id}">
+            <button class="check${t.done ? ' done' : ''}" data-action="toggle" aria-label="Toggle"></button>
             <div class="task-body">
               <div class="task-text" data-action="toggle">${escHtml(t.text)}</div>
               ${tags ? `<div class="task-tags">${tags}</div>` : ''}
             </div>
-            <button class="del" data-action="delete">×</button>
+            <button class="del" data-action="delete" aria-label="Delete">×</button>
           </div>`;
         }).join('');
       }
-      const active = tasks.filter(t => !t.done).length;
+      renderedIds = seen;
+
       const t = today();
-      const overdue = tasks.filter(t2 => t2.due && t2.due < t && !t2.done).length;
-      document.getElementById('count-label').textContent = `${active} remaining${overdue ? ' · ' + overdue + ' overdue' : ''}`;
+      let active = 0, overdue = 0;
+      for (const task of tasks) {
+        if (task.done) continue;
+        active++;
+        if (task.due && task.due < t) overdue++;
+      }
+      $('count-label').textContent = `${active} remaining${overdue ? ' · ' + overdue + ' overdue' : ''}`;
     }
 
-    // ── News ──────────────────────────────────────────────
+    // ── News (loaded lazily on first visit to the tab) ─────
     async function loadNews() {
+      if (!sb) { $('news-list').innerHTML = '<div id="news-empty">Offline — news unavailable.</div>'; return; }
       const { data, error } = await sb.from('daily_news')
         .select('*')
         .order('date_added', { ascending: false })
         .order('id', { ascending: false })
         .limit(50);
-      if (error) { console.error('News load error:', error); return; }
+      if (error) { console.error('news load error:', error); return; }
       newsItems = data || [];
+      newsLoaded = true;
       renderNews();
     }
 
+    // The news writer emits "Markets"; earlier rows used "Capital Markets".
+    // Fold them together so the filter pill matches either spelling.
+    const CAT_ALIASES = { 'Capital Markets': 'Markets' };
+    function normCat(c) { return CAT_ALIASES[c] || c || 'General'; }
+
     function renderNews() {
-      const list = document.getElementById('news-list');
-      const filtered = newsFilter === 'all' ? newsItems : newsItems.filter(n => n.category === newsFilter);
+      const list = $('news-list');
+      const filtered = newsFilter === 'all'
+        ? newsItems
+        : newsItems.filter(n => normCat(n.category) === newsFilter);
 
       if (!filtered.length) {
         list.innerHTML = `<div id="news-empty">${newsItems.length ? 'No news in this category.' : 'No news yet — gets populated daily.'}</div>`;
-        document.getElementById('news-footer').textContent = newsItems.length ? `${newsItems.length} articles loaded` : 'Updated daily';
+        $('news-footer').textContent = newsItems.length ? `${newsItems.length} articles loaded` : 'Updated daily';
         return;
       }
 
+      const catClass = cat => ({
+        'CRE': 'cre', 'Markets': 'capital-markets',
+        'RE Tech': 're-tech', 'NYC/LA': 'nyc-la'
+      }[normCat(cat)] || 'general');
+
       const grouped = {};
-      filtered.forEach(item => { const d = item.date_added; if (!grouped[d]) grouped[d] = []; grouped[d].push(item); });
+      for (const item of filtered) {
+        (grouped[item.date_added] ||= []).push(item);
+      }
 
-      const catClass = cat => {
-        if (cat === 'CRE') return 'cre';
-        if (cat === 'Capital Markets') return 'capital-markets';
-        if (cat === 'RE Tech') return 're-tech';
-        if (cat === 'NYC/LA') return 'nyc-la';
-        return 'general';
-      };
-
-      list.innerHTML = Object.keys(grouped).sort((a,b) => b.localeCompare(a)).map(date => {
-        const label = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+      list.innerHTML = Object.keys(grouped).sort((a, b) => String(b).localeCompare(String(a))).map(date => {
         const items = grouped[date].map(item => {
-          let sourceDomain = '';
-          try { sourceDomain = item.source_url ? new URL(item.source_url).hostname.replace('www.','') : ''; } catch(e) {}
+          const href = item.source_url ? safeUrl(item.source_url) : null;
+          let host = '';
+          if (href) { try { host = new URL(href).hostname.replace(/^www\./, ''); } catch {} }
           return `<div class="news-item">
             <div class="news-headline">${escHtml(item.headline)}</div>
             <div class="news-summary">${escHtml(item.summary)}</div>
             <div class="news-meta">
               <span class="news-cat ${catClass(item.category)}">${escHtml(item.category)}</span>
-              ${item.source_url ? `<span class="news-source"><a href="${escHtml(item.source_url)}" target="_blank" rel="noopener">${sourceDomain}</a></span>` : ''}
+              ${href ? `<span class="news-source"><a href="${escHtml(href)}" target="_blank" rel="noopener noreferrer">${escHtml(host)}</a></span>` : ''}
             </div>
           </div>`;
         }).join('');
-        return `<div class="news-date-label">${label}</div>${items}`;
+        return `<div class="news-date-label">${escHtml(prettyDate(date))}</div>${items}`;
       }).join('');
 
-      document.getElementById('news-footer').textContent = `${filtered.length} article${filtered.length !== 1 ? 's' : ''}`;
+      $('news-footer').textContent = `${filtered.length} article${filtered.length !== 1 ? 's' : ''}`;
     }
 
-    document.getElementById('news-filter-row').addEventListener('click', e => {
+    // ── History ───────────────────────────────────────────
+    async function loadHistory() {
+      if (!sb) { $('history-list').innerHTML = '<div id="empty-state">Offline — history unavailable.</div>'; return; }
+      const monthVal = $('history-date').value;
+      if (!monthVal) return;
+      const [year, month] = monthVal.split('-').map(Number);
+      const start = `${year}-${String(month).padStart(2, '0')}-01`;
+      // half-open range: the old code used a hardcoded day 31, which is not a
+      // real date in half the months and now that completed_date is a real
+      // date column would be rejected outright
+      const nextYear = month === 12 ? year + 1 : year;
+      const nextMonth = month === 12 ? 1 : month + 1;
+      const endExclusive = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+
+      const { data, error } = await sb.from('task_history')
+        .select('*')
+        .gte('completed_date', start)
+        .lt('completed_date', endExclusive)
+        .order('completed_date', { ascending: false });
+      if (error) {
+        console.error('history load error:', error);
+        $('history-list').innerHTML = '<div id="empty-state">Error loading history</div>';
+        return;
+      }
+      historyData = data || [];
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const list = $('history-list');
+      if (!historyData.length) {
+        list.innerHTML = '<div id="empty-state">No completed tasks this month</div>';
+        return;
+      }
+      const grouped = {};
+      for (const item of historyData) {
+        (grouped[item.completed_date] ||= []).push(item);
+      }
+      list.innerHTML = Object.keys(grouped).sort((a, b) => String(b).localeCompare(String(a))).map(date => {
+        const items = grouped[date].map(item =>
+          `<div class="history-item"><div class="history-check"></div><span>${escHtml(item.text)}</span>${
+            item.category ? `<span class="history-cat">${escHtml(item.category)}</span>` : ''
+          }</div>`).join('');
+        return `<div class="history-day"><div class="history-day-label">${escHtml(prettyDate(date))}</div>${items}</div>`;
+      }).join('');
+    }
+
+    // ── Wiring ────────────────────────────────────────────
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+        btn.classList.add('active');
+        $('panel-' + btn.dataset.tab).classList.add('visible');
+        // news no longer competes with the task load on every cold start
+        if (btn.dataset.tab === 'news' && !newsLoaded) loadNews();
+      });
+    });
+
+    $('filter-row').addEventListener('click', e => {
+      const f = e.target.dataset.filter;
+      if (!f) return;
+      filter = f;
+      document.querySelectorAll('#filter-row .filter-pill').forEach(p => p.classList.remove('active'));
+      e.target.classList.add('active');
+      renderTasks();
+    });
+
+    $('news-filter-row').addEventListener('click', e => {
       const f = e.target.dataset.newsFilter;
       if (!f) return;
       newsFilter = f;
@@ -529,60 +707,11 @@
       renderNews();
     });
 
-    // ── History ───────────────────────────────────────────
-    let historyData = [];
-    async function loadHistory() {
-      const monthVal = document.getElementById('history-date').value;
-      if (!monthVal) return;
-      const [year, month] = monthVal.split('-');
-      const start = `${year}-${month}-01`;
-      const end = `${year}-${month}-31`;
-      const { data, error } = await sb.from('task_history').select('*').gte('completed_date', start).lte('completed_date', end).order('completed_date', { ascending: false });
-      if (error) { document.getElementById('history-list').innerHTML = '<div id="empty-state" style="text-align:center;padding:3rem 0;color:var(--text-faint);font-size:14px;">Error loading history</div>'; return; }
-      historyData = data || [];
-      renderHistory();
-    }
-    function renderHistory() {
-      const list = document.getElementById('history-list');
-      if (!historyData.length) { list.innerHTML = '<div id="empty-state" style="text-align:center;padding:3rem 0;color:var(--text-faint);font-size:14px;">No completed tasks this month</div>'; return; }
-      const grouped = {};
-      historyData.forEach(item => { const d = item.completed_date; if (!grouped[d]) grouped[d] = []; grouped[d].push(item); });
-      list.innerHTML = Object.keys(grouped).sort((a,b) => b.localeCompare(a)).map(date => {
-        const label = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
-        const items = grouped[date].map(item => `<div class="history-item"><div class="history-check"></div><span>${escHtml(item.text)}</span>${item.category ? `<span class="history-cat">${item.category}</span>` : ''}</div>`).join('');
-        return `<div class="history-day"><div class="history-day-label">${label}</div>${items}</div>`;
-      }).join('');
-    }
-    document.getElementById('history-search-btn').addEventListener('click', loadHistory);
-
-    // ── Tabs ──────────────────────────────────────────────
-    document.querySelectorAll('.tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
-        btn.classList.add('active');
-        document.getElementById('panel-' + btn.dataset.tab).classList.add('visible');
-      });
+    $('add-btn').addEventListener('click', () => addTask($('task-input').value));
+    $('task-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addTask(e.target.value);
     });
-
-    // ── Filters ───────────────────────────────────────────
-    document.getElementById('filter-row').addEventListener('click', e => {
-      if (!e.target.dataset.filter) return;
-      filter = e.target.dataset.filter;
-      document.querySelectorAll('#filter-row .filter-pill').forEach(p => p.classList.remove('active'));
-      e.target.classList.add('active');
-      renderTasks();
-    });
-
-    // ── Add task ──────────────────────────────────────────
-    document.getElementById('add-btn').addEventListener('click', () => {
-      const inp = document.getElementById('task-input');
-      addTask(inp.value); inp.value = '';
-    });
-    document.getElementById('task-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter') { addTask(e.target.value); e.target.value = ''; }
-    });
-    document.getElementById('task-list').addEventListener('click', e => {
+    $('task-list').addEventListener('click', e => {
       const item = e.target.closest('.task');
       if (!item) return;
       const id = Number(item.dataset.id);
@@ -590,38 +719,57 @@
       if (action === 'toggle') toggleTask(id);
       if (action === 'delete') deleteTask(id);
     });
-    document.getElementById('clear-done').addEventListener('click', clearDone);
+    $('clear-done').addEventListener('click', clearDone);
+    $('history-search-btn').addEventListener('click', loadHistory);
 
     // ── Voice ─────────────────────────────────────────────
-    document.getElementById('mic-btn').addEventListener('click', () => {
-      if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) { alert('Voice input not supported here. Try Chrome or Safari.'); return; }
-      if (isRecording) { recognition && recognition.stop(); return; }
+    $('mic-btn').addEventListener('click', () => {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) { alert('Voice input not supported here. Try Chrome or Safari.'); return; }
+      if (isRecording) { recognition && recognition.stop(); return; }
       recognition = new SR();
-      recognition.lang = 'en-US'; recognition.interimResults = false;
-      recognition.onstart = () => { isRecording = true; document.getElementById('mic-btn').classList.add('recording'); };
-      recognition.onresult = e => { document.getElementById('task-input').value = e.results[0][0].transcript; };
-      recognition.onend = () => { isRecording = false; document.getElementById('mic-btn').classList.remove('recording'); };
-      recognition.onerror = () => { isRecording = false; document.getElementById('mic-btn').classList.remove('recording'); };
+      recognition.lang = 'en-US';
+      recognition.interimResults = false;
+      const btn = $('mic-btn');
+      recognition.onstart  = () => { isRecording = true;  btn.classList.add('recording'); };
+      recognition.onresult = e => { $('task-input').value = e.results[0][0].transcript; };
+      recognition.onend    = () => { isRecording = false; btn.classList.remove('recording'); };
+      recognition.onerror  = () => { isRecording = false; btn.classList.remove('recording'); };
       recognition.start();
     });
 
-    function hideNLPreview() { document.getElementById('nl-preview').style.display = 'none'; }
-
+    // ── Boot ──────────────────────────────────────────────
     function setToday() {
-      document.getElementById('today-str').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
-      const m = new Date(); m.setDate(1);
-      document.getElementById('history-date').value = m.toISOString().slice(0,7);
+      $('today-str').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+      $('history-date').value = today().slice(0, 7);
     }
 
-    if ('standalone' in navigator && !navigator.standalone && /iPhone|iPad/.test(navigator.userAgent)) {
-      document.getElementById('install-bar').style.display = 'block';
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    if (!standalone && /iPhone|iPad/.test(navigator.userAgent)) {
+      $('install-bar').style.display = 'block';
     }
 
     setToday();
-    loadTasks();
-    loadNews();
-    scheduleMidnightArchive();
+
+    // Paint cached tasks immediately; the network round trip then reconciles.
+    const cached = readCache();
+    if (cached && cached.length) {
+      tasks = cached;
+      renderTasks();
+      hideLoading();
+      setSync('warn', 'cached...');
+    } else {
+      showLoading('Waking things up...');
+    }
+
+    refresh({ initial: true }).then(startWatchers);
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.warn('SW failed:', err));
+      });
+    }
+  });
   </script>
 </body>
 </html>
