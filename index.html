@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-  <title>Samuel's To-Do List</title>
+  <title>To-Do</title>
 
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#F7F5F0" media="(prefers-color-scheme: light)">
@@ -249,6 +249,38 @@
     #brief-foot { padding: 12px 22px 18px; flex-shrink: 0; }
     #brief-go { width: 100%; height: 46px; border: none; border-radius: var(--radius-sm); background: var(--text); color: var(--bg); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; }
 
+    /* Gate: household password + "Who's using?" */
+    #gate { position: fixed; inset: 0; z-index: 950; background: var(--bg); display: none; overflow-y: auto; }
+    #gate.open { display: block; }
+    .gate-inner { max-width: 440px; margin: 0 auto; padding: max(12vh, 60px) 24px 40px; text-align: center; }
+    .gate-title { font-family: 'DM Serif Display', serif; font-size: 30px; letter-spacing: -0.5px; line-height: 1.15; }
+    .gate-sub { font-size: 14px; color: var(--text-muted); margin-top: 8px; }
+    .gate-form { margin-top: 28px; display: flex; flex-direction: column; gap: 10px; text-align: left; }
+    .gate-input { height: 46px; padding: 0 14px; font-family: 'DM Sans', sans-serif; font-size: 16px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); outline: none; width: 100%; }
+    .gate-input:focus { border-color: var(--accent); }
+    textarea.gate-input { height: 72px; padding: 10px 14px; resize: none; font-size: 14px; line-height: 1.4; }
+    .gate-label { font-size: 12px; color: var(--text-muted); margin: 6px 0 -4px; }
+    .gate-btn { height: 46px; border: none; border-radius: var(--radius-sm); background: var(--text); color: var(--bg); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; }
+    .gate-btn:disabled { opacity: 0.5; cursor: default; }
+    .gate-btn.ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-strong); }
+    .gate-btn.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+    .gate-err { font-size: 13px; color: var(--danger); min-height: 18px; }
+    .gate-note { font-size: 12px; color: var(--text-faint); line-height: 1.5; }
+    .profiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 22px 18px; margin-top: 34px; }
+    .pf { width: 96px; background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 0; }
+    .pf-av { width: 84px; height: 84px; border-radius: 22px; display: flex; align-items: center; justify-content: center; color: #fff; font-family: 'DM Serif Display', serif; font-size: 38px; transition: transform 0.12s, box-shadow 0.12s; position: relative; }
+    .pf:hover .pf-av, .pf:focus-visible .pf-av { transform: translateY(-2px); box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--text); }
+    .pf:hover { color: var(--text); }
+    .pf-name { font-size: 14px; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pf-av.add { background: transparent; border: 1.5px dashed var(--border-strong); color: var(--text-faint); font-family: 'DM Sans', sans-serif; font-size: 34px; font-weight: 300; }
+    .editing .pf-av:not(.add)::after { content: '✎'; position: absolute; inset: 0; border-radius: 22px; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; font-family: 'DM Sans', sans-serif; font-size: 22px; }
+    .gate-links { margin-top: 40px; display: flex; justify-content: center; gap: 18px; }
+    .gate-link { background: none; border: none; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text-muted); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+    .swatch { width: 32px; height: 32px; border-radius: 10px; border: none; cursor: pointer; }
+    .swatch.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
+    #who-btn { width: 30px; height: 30px; border-radius: 9px; border: none; color: #fff; font-family: 'DM Serif Display', serif; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
 
@@ -267,7 +299,7 @@
 </head>
 <body>
   <div id="loading-screen">
-    <div id="loading-wordmark">Samuel's To-Do List</div>
+    <div id="loading-wordmark">To-Do</div>
     <div id="loading-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
     <div id="loading-msg">Waking things up...</div>
     <div id="loading-slow">Taking a little longer than usual — Supabase is warming up from sleep. Hang tight.</div>
@@ -277,10 +309,11 @@
     <div id="install-bar">Add to home screen — tap Share → Add to Home Screen</div>
     <div id="top">
       <div id="top-row">
-        <div id="wordmark">Samuel's To-Do List</div>
+        <div id="wordmark">To-Do</div>
         <div id="top-right">
           <span id="sync-status">connecting...</span>
           <button class="icon-btn" id="brief-open" title="Morning brief">☀︎ Brief</button>
+          <button id="who-btn" title="Switch profile" aria-label="Switch profile"></button>
         </div>
       </div>
       <div id="today-str"></div>
@@ -353,14 +386,7 @@
 
       <!-- News -->
       <div class="panel" id="panel-news">
-        <div id="news-filter-row">
-          <button class="filter-pill active" data-news-filter="all">All</button>
-          <button class="filter-pill" data-news-filter="CRE">CRE</button>
-          <button class="filter-pill" data-news-filter="Markets">Markets</button>
-          <button class="filter-pill" data-news-filter="RE Tech">RE Tech</button>
-          <button class="filter-pill" data-news-filter="NYC/LA">NYC/LA</button>
-          <button class="filter-pill" data-news-filter="General">General</button>
-        </div>
+        <div id="news-filter-row"></div>
         <div id="news-list"><div id="news-empty">No news yet — gets populated daily.</div></div>
         <div id="news-footer">Updated daily</div>
       </div>
@@ -376,10 +402,12 @@
     </div>
   </div>
 
+  <div id="gate" aria-live="polite"><div class="gate-inner" id="gate-inner"></div></div>
+
   <div id="brief" role="dialog" aria-modal="true" aria-labelledby="brief-hello">
     <div id="brief-sheet">
       <div id="brief-head">
-        <div id="brief-hello">Good morning, Samuel</div>
+        <div id="brief-hello">Good morning</div>
         <div id="brief-sub"></div>
       </div>
       <div id="brief-body"></div>
@@ -391,7 +419,15 @@
   document.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://rtgtgjcfaabdvumqtwgl.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0Z3RnamNmYWFiZHZ1bXF0d2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDY1NjAsImV4cCI6MjA4ODkyMjU2MH0.IcdGUydtjwS1aYzZGv32GesRcOe3YafgQ0P_CeJyS2A';
-    const CACHE_KEY = 'todo.tasks.v1';
+    // One shared household sign-in per device, then Netflix-style profiles.
+    const HOUSEHOLD_EMAIL = 'household@samueltodolist216.app';
+    const PROFILE_KEY = 'todo.profile.v1';
+    const PROFILES_CACHE = 'todo.profiles.v1';
+    const COLORS = ['#2D5A3D', '#3949AB', '#B7770D', '#C0392B', '#6A4C93', '#0E7C86', '#8A5A44', '#44474F'];
+    let me = null;          // active profile
+    let profiles = [];
+    let watchersOn = false;
+    const cacheKey = () => `todo.tasks.v2.${me?.id}`;
     const $ = id => document.getElementById(id);
     // If the CDN client is unreachable (first offline open), fall through to a
     // read-only view of the cached list instead of throwing on boot.
@@ -418,7 +454,7 @@
     let calSynced = null;
     let weekOffset = 0;            // 0 = this week, -1 = last week...
     let weekLoaded = false;
-    const BRIEF_KEY = 'todo.brief.lastShown';
+    const briefKey = () => `todo.brief.lastShown.${me?.id}`;
 
     // ── Helpers ───────────────────────────────────────────
     // Local calendar date. The old version used toISOString(), which is UTC —
@@ -488,12 +524,13 @@
     // ── Local cache: paints instantly, survives a cold/offline start ───
     function readCache() {
       try {
-        const raw = JSON.parse(localStorage.getItem(CACHE_KEY));
+        const raw = JSON.parse(localStorage.getItem(cacheKey()));
         return Array.isArray(raw?.tasks) ? raw.tasks : null;
       } catch { return null; }
     }
     function writeCache() {
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ tasks, savedAt: Date.now() })); } catch {}
+      if (!me) return;
+      try { localStorage.setItem(cacheKey(), JSON.stringify({ tasks, savedAt: Date.now() })); } catch {}
     }
 
     // ── Loading screen ────────────────────────────────────
@@ -516,6 +553,7 @@
     // One RPC does the day-boundary rollover (reset recurring, archive stale)
     // and returns the resulting list, so this is a single round trip.
     async function refresh({ initial = false } = {}) {
+      if (!me) return;
       if (!sb) { setSync('err', tasks.length ? 'offline · cached' : 'offline'); hideLoading(); return; }
       if (refreshing) return;
       refreshing = true;
@@ -527,8 +565,10 @@
         }, 4000);
       }
       try {
-        const { data, error } = await sb.rpc('daily_rollover', { p_today: today() });
+        const pid = me.id;
+        const { data, error } = await sb.rpc('daily_rollover', { p_today: today(), p_profile: pid });
         if (error) throw error;
+        if (!me || me.id !== pid) return;   // switched profiles mid-request
         tasks = data || [];
         sortTasks();
         rolloverDay = today();
@@ -549,8 +589,11 @@
     function subscribe() {
       if (!sb) return;
       if (channel) { sb.removeChannel(channel); channel = null; }
-      channel = sb.channel('tasks-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
+      if (!me) return;
+      const pid = me.id;
+      channel = sb.channel('tasks-' + pid)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `profile_id=eq.${pid}` }, payload => {
+          if (!me || me.id !== pid) return;
           const { eventType, new: n, old: o } = payload;
           if (eventType === 'INSERT') {
             if (!tasks.some(t => t.id === n.id)) tasks.unshift(n);
@@ -573,7 +616,7 @@
             // the old version claimed "● live" forever after the socket died
             setSync('warn', 'reconnecting...');
             const delay = Math.min(30000, 1000 * Math.pow(2, retryCount++));
-            setTimeout(subscribe, delay);
+            setTimeout(() => { if (me && me.id === pid) subscribe(); }, delay);
           }
         });
     }
@@ -582,17 +625,19 @@
     // build relied solely on a setTimeout scheduled for midnight, which never
     // fires on a phone because the page is frozen the moment it backgrounds.
     function startWatchers() {
-      subscribe();
+      if (watchersOn) return;
+      watchersOn = true;
       // A home-screen app is usually resumed, not reloaded, so the brief check
       // has to run on resume too — otherwise it would only fire on a cold start.
       document.addEventListener('visibilitychange', () => {
-        if (document.hidden) return;
+        if (document.hidden || !me) return;
         refresh();
         maybeAutoBrief();
         if ($('panel-calendar').classList.contains('visible')) loadCalendar();
       });
       window.addEventListener('online', () => refresh());
       setInterval(() => {
+        if (!me) return;
         if (today() !== rolloverDay) refresh();
         if (!document.hidden) maybeAutoBrief();
       }, 60000);
@@ -614,7 +659,8 @@
         recurring: $('recur-select').value || null,
         last_reset: null,
         completed_date: null,
-        category: guessCategory(text)
+        category: guessCategory(text),
+        profile_id: me.id
       };
       try {
         const { data, error } = await sb.from('tasks').insert(row).select().single();
@@ -740,7 +786,7 @@
     // daily was checked off destroyed it permanently.
     async function clearDone() {
       if (!sb) { setSync('err', 'offline — read only'); return; }
-      const { error } = await sb.rpc('clear_done_tasks', { p_today: today() });
+      const { error } = await sb.rpc('clear_done_tasks', { p_today: today(), p_profile: me.id });
       if (error) { console.error('clear failed:', error); setSync('err', 'sync error'); return; }
       await refresh();
     }
@@ -822,12 +868,15 @@
     // ── News (loaded lazily on first visit to the tab) ─────
     async function loadNews() {
       if (!sb) { $('news-list').innerHTML = '<div id="news-empty">Offline — news unavailable.</div>'; return; }
+      const pid = me.id;
       const { data, error } = await sb.from('daily_news')
         .select('*')
+        .eq('profile_id', pid)
         .order('date_added', { ascending: false })
         .order('id', { ascending: false })
         .limit(50);
       if (error) { console.error('news load error:', error); return; }
+      if (!me || me.id !== pid) return;
       newsItems = data || [];
       newsLoaded = true;
       renderNews();
@@ -840,6 +889,11 @@
 
     function renderNews() {
       const list = $('news-list');
+      // pills come from whatever categories this person's feed actually uses
+      const cats = [...new Set(newsItems.map(n => normCat(n.category)))];
+      if (newsFilter !== 'all' && !cats.includes(newsFilter)) newsFilter = 'all';
+      $('news-filter-row').innerHTML = ['all', ...cats].map(c =>
+        `<button class="filter-pill${c === newsFilter ? ' active' : ''}" data-news-filter="${escHtml(c)}">${c === 'all' ? 'All' : escHtml(c)}</button>`).join('');
       const filtered = newsFilter === 'all'
         ? newsItems
         : newsItems.filter(n => normCat(n.category) === newsFilter);
@@ -956,6 +1010,7 @@
       const from = addDays(ws, -7), to = addDays(ws, 7);
       const { data, error } = await sb.from('task_history')
         .select('text, category, completed_date, recurring')
+        .eq('profile_id', me.id)
         .gte('completed_date', from)
         .lt('completed_date', to);
       if (error) throw error;
@@ -1074,18 +1129,18 @@
 
     function shouldAutoBrief() {
       const h = new Date().getHours();
-      return h >= 8 && h < 12 && lsGet(BRIEF_KEY) !== today();
+      return !!me && h >= 8 && h < 12 && lsGet(briefKey()) !== today() && !$('gate').classList.contains('open');
     }
     function maybeAutoBrief() { if (shouldAutoBrief() && !briefIsOpen()) openBrief(); }
 
     async function openBrief() {
-      lsSet(BRIEF_KEY, today());
+      lsSet(briefKey(), today());
       briefWeek = null;
       renderBrief();
       $('brief').classList.add('open');
       if (!sb) return;
-      const jobs = [loadCalendar(true).catch(() => {})];
-      jobs.push(sb.from('daily_news').select('headline, source_url, date_added, category')
+      const jobs = me?.has_calendar ? [loadCalendar(true).catch(() => {})] : [];
+      jobs.push(sb.from('daily_news').select('headline, source_url, date_added, category').eq('profile_id', me.id)
         .order('date_added', { ascending: false }).order('id', { ascending: false }).limit(5)
         .then(({ data }) => {
           const rows = data || [];
@@ -1114,9 +1169,11 @@
     function renderBrief() {
       const t = today();
       const hour = new Date().getHours();
-      $('brief-hello').textContent = hour < 12 ? 'Good morning, Samuel' : hour < 17 ? 'Good afternoon, Samuel' : 'Good evening, Samuel';
+      const nm = me?.name || '';
+      $('brief-hello').textContent = (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening') + (nm ? ', ' + nm : '');
 
-      const evs = eventsOn(t);
+      const hasCal = !!me?.has_calendar;
+      const evs = hasCal ? eventsOn(t) : [];
       const oneOffs = tasks.filter(x => !x.recurring);
       const overdue = oneOffs.filter(x => !x.done && x.due && x.due < t);
       const dueToday = oneOffs.filter(x => x.due === t);
@@ -1131,11 +1188,11 @@
 
       const timed = evs.filter(e => !e.all_day).length;
       const bits = [new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })];
-      bits.push(timed ? `${timed} event${timed > 1 ? 's' : ''}` : 'clear calendar');
+      if (hasCal) bits.push(timed ? `${timed} event${timed > 1 ? 's' : ''}` : 'clear calendar');
       if (overdue.length) bits.push(`${overdue.length} overdue`);
       $('brief-sub').textContent = bits.join(' · ');
 
-      let html = `<div class="brief-card"><div class="brief-card-h"><span>Today's schedule</span><span>${calSynced ? escHtml(dateStr(calSynced) === t ? fmtTime(calSynced) + ' sync' : 'synced ' + calSynced.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })) : ''}</span></div>
+      let html = !hasCal ? '' : `<div class="brief-card"><div class="brief-card-h"><span>Today's schedule</span><span>${calSynced ? escHtml(dateStr(calSynced) === t ? fmtTime(calSynced) + ' sync' : 'synced ' + calSynced.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })) : ''}</span></div>
         ${evs.length ? evs.map(eventRow).join('') : `<div class="brief-muted">${calLoadedAt ? 'Nothing on the calendar today.' : 'Loading calendar...'}</div>`}</div>`;
 
       const tagFor = x => x.due && x.due < t ? '<span class="tag overdue">Overdue</span>'
@@ -1193,6 +1250,7 @@
 
       const { data, error } = await sb.from('task_history')
         .select('*')
+        .eq('profile_id', me.id)
         .gte('completed_date', start)
         .lt('completed_date', endExclusive)
         .order('completed_date', { ascending: false });
@@ -1297,6 +1355,198 @@
       recognition.start();
     });
 
+    // ── Profiles & household sign-in ──────────────────────
+    function initial(name) { return escHtml((name || '?').trim().charAt(0).toUpperCase()); }
+    function readProfilesCache() { try { const a = JSON.parse(lsGet(PROFILES_CACHE)); return Array.isArray(a) ? a : []; } catch { return []; } }
+    async function fetchProfiles() {
+      const { data, error } = await sb.from('profiles').select('*').order('is_owner', { ascending: false }).order('id');
+      if (error) throw error;
+      profiles = data || [];
+      lsSet(PROFILES_CACHE, JSON.stringify(profiles));
+      return profiles;
+    }
+
+    function openGate(html) {
+      closeBrief();
+      hideLoading();
+      $('gate-inner').innerHTML = html;
+      $('gate').classList.add('open');
+      $('gate').scrollTop = 0;
+    }
+    function closeGate() { $('gate').classList.remove('open'); }
+
+    function showLock(msg = '') {
+      openGate(`<div class="gate-title">To-Do</div>
+        <div class="gate-sub">Enter the household password. You only do this once on each device.</div>
+        <form class="gate-form" id="lock-form" autocomplete="on">
+          <input type="email" name="username" value="${HOUSEHOLD_EMAIL}" autocomplete="username" hidden>
+          <input class="gate-input" type="password" id="lock-pw" placeholder="Household password" autocomplete="current-password" required>
+          <div class="gate-err" id="lock-err">${escHtml(msg)}</div>
+          <button class="gate-btn" id="lock-go" type="submit">Continue</button>
+        </form>`);
+      setTimeout(() => $('lock-pw')?.focus(), 50);
+    }
+
+    async function doUnlock(pw) {
+      $('lock-go').disabled = true;
+      $('lock-err').textContent = '';
+      const { error } = await sb.auth.signInWithPassword({ email: HOUSEHOLD_EMAIL, password: pw });
+      if (error) {
+        $('lock-go').disabled = false;
+        $('lock-err').textContent = /invalid/i.test(error.message) ? 'That password isn’t right.' : 'Couldn’t sign in: ' + error.message;
+        return;
+      }
+      try { await fetchProfiles(); } catch (e) { console.error(e); }
+      showPicker();
+    }
+
+    let editingProfiles = false;
+    function showPicker() {
+      if (!profiles.length) profiles = readProfilesCache();
+      const tiles = profiles.map(p => `<button class="pf" data-pid="${p.id}">
+          <span class="pf-av" style="background:${escHtml(p.color)}">${initial(p.name)}</span>
+          <span class="pf-name">${escHtml(p.name)}</span></button>`).join('');
+      openGate(`<div class="gate-title">${editingProfiles ? 'Manage profiles' : 'Who’s using?'}</div>
+        <div class="profiles${editingProfiles ? ' editing' : ''}">${tiles}
+          <button class="pf" data-pid="new"><span class="pf-av add">+</span><span class="pf-name">Add profile</span></button>
+        </div>
+        <div class="gate-links">
+          <button class="gate-link" id="pf-manage">${editingProfiles ? 'Done' : 'Manage profiles'}</button>
+          <button class="gate-link" id="pf-signout">Sign out of this device</button>
+        </div>`);
+    }
+
+    function showProfileForm(p) {
+      const isNew = !p;
+      p = p || { name: '', color: COLORS[profiles.length % COLORS.length], news_topics: '' };
+      openGate(`<div class="gate-title">${isNew ? 'Add profile' : 'Edit profile'}</div>
+        <form class="gate-form" id="pf-form" data-pid="${isNew ? '' : p.id}">
+          <div class="gate-label">Name</div>
+          <input class="gate-input" id="pf-name" maxlength="24" value="${escHtml(p.name)}" placeholder="Name" required>
+          <div class="gate-label">Color</div>
+          <div class="swatches">${COLORS.map(c => `<button type="button" class="swatch${c === p.color ? ' on' : ''}" data-color="${c}" style="background:${c}" aria-label="Color"></button>`).join('')}</div>
+          <div class="gate-label">Daily news topics (optional)</div>
+          <textarea class="gate-input" id="pf-news" maxlength="300" placeholder="e.g. finance and markets, tech, sports">${escHtml(p.news_topics || '')}</textarea>
+          <div class="gate-note">${p.is_owner ? 'Your news comes from your existing morning news task.' : 'Leave blank for no News tab feed. Headlines show up the morning after you save.'}${p.has_calendar ? '' : ' Google Calendar sync is only set up for the main profile.'}</div>
+          <div class="gate-err" id="pf-err"></div>
+          <button class="gate-btn" type="submit" id="pf-save">${isNew ? 'Add profile' : 'Save'}</button>
+          <button class="gate-btn ghost" type="button" id="pf-cancel">Cancel</button>
+          ${!isNew && !p.is_owner ? `<button class="gate-btn danger" type="button" id="pf-delete">Delete profile</button>` : ''}
+        </form>`);
+      if (isNew) setTimeout(() => $('pf-name')?.focus(), 50);
+    }
+
+    async function saveProfile(form) {
+      const pid = form.dataset.pid ? Number(form.dataset.pid) : null;
+      const name = $('pf-name').value.trim();
+      if (!name) { $('pf-err').textContent = 'Give it a name.'; return; }
+      const color = form.querySelector('.swatch.on')?.dataset.color || COLORS[0];
+      const owner = pid && profiles.find(x => x.id === pid)?.is_owner;
+      const row = { name, color };
+      if (!owner) row.news_topics = $('pf-news').value.trim() || null;
+      $('pf-save').disabled = true;
+      const q = pid ? sb.from('profiles').update(row).eq('id', pid) : sb.from('profiles').insert(row);
+      const { error } = await q;
+      if (error) { $('pf-save').disabled = false; $('pf-err').textContent = 'Couldn’t save: ' + error.message; return; }
+      await fetchProfiles();
+      if (me && pid === me.id) applyProfileChrome(profiles.find(x => x.id === pid));
+      showPicker();
+    }
+
+    async function deleteProfile(pid, btn) {
+      if (btn.dataset.armed !== '1') {
+        btn.dataset.armed = '1';
+        btn.textContent = 'Tap again to delete this profile and all its tasks';
+        return;
+      }
+      btn.disabled = true;
+      const { error } = await sb.from('profiles').delete().eq('id', pid);
+      if (error) { btn.disabled = false; $('pf-err').textContent = 'Couldn’t delete: ' + error.message; return; }
+      try { localStorage.removeItem(`todo.tasks.v2.${pid}`); } catch {}
+      if (me && me.id === pid) { me = null; lsSet(PROFILE_KEY, ''); }
+      await fetchProfiles();
+      showPicker();
+    }
+
+    function applyProfileChrome(p) {
+      me = p;
+      const title = `${p.name}’s To-Do List`;
+      $('wordmark').textContent = title;
+      document.title = title;
+      $('who-btn').textContent = (p.name || '?').trim().charAt(0).toUpperCase();
+      $('who-btn').style.background = p.color;
+      document.querySelector('.tab[data-tab="calendar"]').style.display = p.has_calendar ? '' : 'none';
+    }
+
+    function startProfile(p) {
+      if (channel && sb) { sb.removeChannel(channel); channel = null; }
+      retryCount = 0;
+      applyProfileChrome(p);
+      lsSet(PROFILE_KEY, String(p.id));
+      editingProfiles = false;
+      closeGate();
+      // fresh slate for everything per-person
+      tasks = []; renderedIds = new Set(); rolloverDay = null;
+      newsItems = []; newsLoaded = false; newsFilter = 'all';
+      calEvents = []; calLoadedAt = 0; calSynced = null;
+      weekOffset = 0; historyData = [];
+      $('news-list').innerHTML = '<div id="news-empty">Loading...</div>';
+      $('history-list').innerHTML = '<div id="empty-state">Select a month and hit Load</div>';
+      showTab('tasks');
+      filter = 'all';
+      document.querySelectorAll('#filter-row .filter-pill').forEach(x => x.classList.toggle('active', x.dataset.filter === 'all'));
+
+      const cached = readCache();
+      if (cached && cached.length) {
+        tasks = cached;
+        sortTasks();
+        setSync('warn', 'cached...');
+      } else {
+        showLoading('Loading ' + p.name + '’s list...');
+      }
+      renderTasks();
+      refresh({ initial: true }).then(() => { subscribe(); startWatchers(); maybeAutoBrief(); });
+    }
+
+    $('gate').addEventListener('submit', e => {
+      e.preventDefault();
+      if (e.target.id === 'lock-form') doUnlock($('lock-pw').value);
+      if (e.target.id === 'pf-form') saveProfile(e.target);
+    });
+    $('gate').addEventListener('click', async e => {
+      const tile = e.target.closest('.pf');
+      if (tile) {
+        const pid = tile.dataset.pid;
+        if (pid === 'new') return showProfileForm(null);
+        const p = profiles.find(x => String(x.id) === pid);
+        if (!p) return;
+        return editingProfiles ? showProfileForm(p) : startProfile(p);
+      }
+      const sw = e.target.closest('.swatch');
+      if (sw) { document.querySelectorAll('.swatch').forEach(x => x.classList.toggle('on', x === sw)); return; }
+      if (e.target.id === 'pf-manage') { editingProfiles = !editingProfiles; return showPicker(); }
+      if (e.target.id === 'pf-cancel') return showPicker();
+      if (e.target.id === 'pf-delete') return deleteProfile(Number($('pf-form').dataset.pid), e.target);
+      if (e.target.id === 'pf-signout') {
+        if (channel && sb) { sb.removeChannel(channel); channel = null; }
+        await sb.auth.signOut().catch(() => {});
+        try {
+          Object.keys(localStorage).filter(k => k.startsWith('todo.')).forEach(k => localStorage.removeItem(k));
+        } catch {}
+        me = null; profiles = []; tasks = [];
+        return showLock();
+      }
+    });
+    $('who-btn').addEventListener('click', () => {
+      editingProfiles = false;
+      showPicker();
+      fetchProfiles().then(() => { if ($('gate').classList.contains('open') && document.querySelector('#gate .profiles')) showPicker(); }).catch(() => {});
+    });
+    // signed out elsewhere or the refresh token died: back to the lock screen
+    sb?.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT' && !$('lock-form')) showLock();
+    });
+
     // ── Boot ──────────────────────────────────────────────
     function setToday() {
       $('today-str').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
@@ -1309,21 +1559,34 @@
     }
 
     setToday();
-
-    // Paint cached tasks immediately; the network round trip then reconciles.
-    const cached = readCache();
-    if (cached && cached.length) {
-      tasks = cached;
-      sortTasks();
-      renderTasks();
-      hideLoading();
-      setSync('warn', 'cached...');
-    } else {
-      showLoading('Waking things up...');
-    }
-
     initSortable();
-    refresh({ initial: true }).then(() => { startWatchers(); maybeAutoBrief(); });
+
+    (async function boot() {
+      profiles = readProfilesCache();
+      const savedId = lsGet(PROFILE_KEY);
+      const saved = profiles.find(p => String(p.id) === savedId);
+
+      if (!sb) {                     // offline first open: show cached list read-only
+        if (saved) { applyProfileChrome(saved); tasks = readCache() || []; sortTasks(); renderTasks(); }
+        setSync('err', 'offline');
+        hideLoading();
+        return;
+      }
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return showLock();
+
+      if (saved) {
+        startProfile(saved);                       // instant, from cache
+        fetchProfiles().then(list => {             // pick up renames / color changes
+          const fresh = list.find(p => p.id === saved.id);
+          if (!fresh) { me = null; showPicker(); }
+          else if (me && me.id === fresh.id) applyProfileChrome(fresh);
+        }).catch(() => {});
+      } else {
+        try { await fetchProfiles(); } catch (e) { console.error(e); }
+        showPicker();
+      }
+    })();
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

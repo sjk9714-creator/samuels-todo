@@ -1,7 +1,7 @@
 // Offline shell for Samuel's To-Do List.
 // Data is never cached here — only the app shell and static assets. Task state
 // lives in localStorage (written by the app) so a cold offline open still paints.
-const CACHE = 'todo-shell-v3';
+const CACHE = 'todo-shell-v4';
 const SHELL = [
   '/',
   '/index.html',
