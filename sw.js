@@ -1,7 +1,7 @@
 // Offline shell for Samuel's To-Do List.
 // Data is never cached here — only the app shell and static assets. Task state
 // lives in localStorage (written by the app) so a cold offline open still paints.
-const CACHE = 'todo-shell-v2';
+const CACHE = 'todo-shell-v3';
 const SHELL = [
   '/',
   '/index.html',
@@ -11,7 +11,8 @@ const SHELL = [
   '/apple-touch-icon.png',
   // precached so the very first offline open can still boot the app rather
   // than dying on an undefined `supabase` global
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  'https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js'
 ];
 
 self.addEventListener('install', e => {

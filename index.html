@@ -19,6 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <!-- deferred: runs after parsing but before DOMContentLoaded, so it no longer blocks first paint -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js" defer></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -149,6 +150,105 @@
     #news-footer { padding: 10px 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-faint); text-align: center; flex-shrink: 0; }
     #news-empty { text-align: center; padding: 3rem 0; color: var(--text-faint); font-size: 14px; }
 
+    /* Drag to reorder */
+    .grip { width: 16px; flex-shrink: 0; margin-top: 3px; cursor: grab; color: var(--text-faint); font-size: 13px; line-height: 1; letter-spacing: -2px; user-select: none; -webkit-user-select: none; touch-action: none; display: flex; justify-content: center; }
+    .grip:hover { color: var(--text-muted); }
+    .task.sortable-ghost { opacity: 0.25; }
+    .task.sortable-chosen { background: var(--surface); }
+    .task.sortable-drag { box-shadow: 0 6px 20px rgba(0,0,0,0.12); border-radius: var(--radius-sm); }
+    .cal-btn { width: 26px; height: 26px; border: none; background: transparent; color: var(--text-faint); cursor: pointer; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; text-decoration: none; }
+    .cal-btn:hover { background: var(--accent-light); color: var(--accent); }
+    .cal-btn svg, .icon-btn svg { width: 15px; height: 15px; }
+
+    /* Header buttons */
+    #top-right { display: flex; align-items: center; gap: 10px; }
+    .icon-btn { height: 28px; padding: 0 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); border-radius: 99px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 12px; display: flex; align-items: center; gap: 5px; }
+    .icon-btn:hover { color: var(--text); }
+    .tab .dot-badge { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-left: 5px; vertical-align: middle; }
+
+    /* Calendar panel */
+    #cal-list { flex: 1; overflow-y: auto; padding: 4px 20px 20px; }
+    .cal-day-label { font-size: 12px; font-weight: 500; color: var(--text-muted); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .cal-day-label:first-child { margin-top: 10px; }
+    .cal-day-label.today { color: var(--accent); }
+    .event { display: flex; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); text-decoration: none; color: inherit; }
+    .event:last-child { border-bottom: none; }
+    .event-time { width: 64px; flex-shrink: 0; font-size: 12px; color: var(--text-muted); padding-top: 2px; font-variant-numeric: tabular-nums; line-height: 1.35; }
+    .event-bar { width: 3px; border-radius: 3px; background: var(--accent); flex-shrink: 0; }
+    .event.allday .event-bar { background: var(--text-faint); }
+    .event.past { opacity: 0.4; }
+    .event.now .event-time { color: var(--accent); font-weight: 500; }
+    .event-title { font-size: 14px; color: var(--text); line-height: 1.4; }
+    .event-loc { font-size: 12px; color: var(--text-faint); margin-top: 1px; }
+    .cal-empty-day { font-size: 13px; color: var(--text-faint); padding: 6px 0; }
+    #cal-footer { padding: 10px 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-faint); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 10px; }
+    #cal-footer a { color: var(--text-muted); }
+
+    /* Week panel */
+    #week-controls { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    #week-label { font-size: 14px; font-weight: 500; }
+    .week-nav { width: 32px; height: 32px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; font-size: 16px; }
+    .week-nav:disabled { opacity: 0.3; cursor: default; }
+    #week-body { flex: 1; overflow-y: auto; padding: 16px 20px 24px; }
+    .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; }
+    .stat-num { font-family: 'DM Serif Display', serif; font-size: 26px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .stat-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .stat-delta { font-size: 11px; margin-top: 4px; color: var(--text-faint); }
+    .stat-delta.up { color: var(--accent); }
+    .stat-delta.down { color: var(--important-text); }
+    .section-h { font-size: 12px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 22px 0 10px; }
+    .daybars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; height: 96px; }
+    .daybar { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+    .daybar-fill { width: 100%; max-width: 30px; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+    .daybar-fill.zero { background: var(--border-strong); }
+    .daybar-n { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .daybar-d { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 4px; }
+    .daybar-d span { text-align: center; font-size: 11px; color: var(--text-faint); }
+    .daybar-d span.today { color: var(--text); font-weight: 500; }
+    .cat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; font-size: 13px; }
+    .cat-name { width: 72px; color: var(--text-muted); text-transform: capitalize; flex-shrink: 0; }
+    .cat-track { flex: 1; height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
+    .cat-fill { height: 100%; background: var(--accent); border-radius: 99px; }
+    .cat-n { width: 24px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-muted); }
+    .habit { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 14px; }
+    .habit-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .habit-dots { display: flex; gap: 5px; }
+    .hdot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--border-strong); }
+    .hdot.on { background: var(--accent); border-color: var(--accent); }
+    .hdot.future { border-style: dashed; opacity: 0.5; }
+    .habit-n { width: 28px; text-align: right; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .week-empty { text-align: center; padding: 2.5rem 0; color: var(--text-faint); font-size: 14px; }
+
+    /* Morning brief */
+    #brief { position: fixed; inset: 0; z-index: 900; background: rgba(0,0,0,0.35); display: none; align-items: flex-end; justify-content: center; }
+    #brief.open { display: flex; animation: briefFade 0.2s ease; }
+    @keyframes briefFade { from { opacity: 0 } to { opacity: 1 } }
+    #brief-sheet { background: var(--bg); width: 100%; max-width: 520px; max-height: 92dvh; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; animation: briefUp 0.28s cubic-bezier(.2,.8,.2,1); padding-bottom: env(safe-area-inset-bottom); }
+    @media (min-width: 560px) { #brief { align-items: center; } #brief-sheet { border-radius: 20px; } }
+    @keyframes briefUp { from { transform: translateY(40px); opacity: 0.6 } to { transform: none; opacity: 1 } }
+    #brief-head { padding: 22px 22px 12px; flex-shrink: 0; }
+    #brief-hello { font-family: 'DM Serif Display', serif; font-size: 26px; letter-spacing: -0.5px; line-height: 1.15; }
+    #brief-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    #brief-body { overflow-y: auto; padding: 0 22px 8px; flex: 1; }
+    .brief-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+    .brief-card-h { font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; display: flex; justify-content: space-between; }
+    .brief-card .event { padding: 6px 0; }
+    .brief-task { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 14px; cursor: pointer; }
+    .brief-task:last-child { border-bottom: none; }
+    .brief-task .check { margin-top: 0; }
+    .brief-task.done span { text-decoration: line-through; color: var(--text-faint); }
+    .brief-task .tag { margin-left: auto; flex-shrink: 0; }
+    .brief-news { padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 14px; line-height: 1.4; }
+    .brief-news:last-child { border-bottom: none; }
+    .brief-news a { color: var(--text); text-decoration: none; }
+    .brief-news a:hover { text-decoration: underline; }
+    .brief-muted { font-size: 13px; color: var(--text-faint); }
+    .brief-week { font-size: 14px; line-height: 1.5; }
+    .brief-link { background: none; border: none; color: var(--accent); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; padding: 0; margin-top: 6px; }
+    #brief-foot { padding: 12px 22px 18px; flex-shrink: 0; }
+    #brief-go { width: 100%; height: 46px; border: none; border-radius: var(--radius-sm); background: var(--text); color: var(--bg); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; }
+
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
 
@@ -178,11 +278,16 @@
     <div id="top">
       <div id="top-row">
         <div id="wordmark">Samuel's To-Do List</div>
-        <span id="sync-status">connecting...</span>
+        <div id="top-right">
+          <span id="sync-status">connecting...</span>
+          <button class="icon-btn" id="brief-open" title="Morning brief">☀︎ Brief</button>
+        </div>
       </div>
       <div id="today-str"></div>
       <div id="tabs">
         <button class="tab active" data-tab="tasks">Tasks</button>
+        <button class="tab" data-tab="calendar">Calendar</button>
+        <button class="tab" data-tab="week">Week</button>
         <button class="tab" data-tab="news">News</button>
         <button class="tab" data-tab="history">History</button>
       </div>
@@ -227,6 +332,25 @@
         </div>
       </div>
 
+      <!-- Calendar -->
+      <div class="panel" id="panel-calendar">
+        <div id="cal-list"><div class="week-empty">Loading calendar...</div></div>
+        <div id="cal-footer">
+          <span id="cal-synced"></span>
+          <a href="https://calendar.google.com/calendar/r/eventedit" target="_blank" rel="noopener noreferrer">+ New event</a>
+        </div>
+      </div>
+
+      <!-- Week -->
+      <div class="panel" id="panel-week">
+        <div id="week-controls">
+          <button class="week-nav" id="week-prev" aria-label="Previous week">‹</button>
+          <div id="week-label"></div>
+          <button class="week-nav" id="week-next" aria-label="Next week">›</button>
+        </div>
+        <div id="week-body"><div class="week-empty">Loading...</div></div>
+      </div>
+
       <!-- News -->
       <div class="panel" id="panel-news">
         <div id="news-filter-row">
@@ -249,6 +373,17 @@
         </div>
         <div id="history-list"><div id="empty-state">Select a month and hit Load</div></div>
       </div>
+    </div>
+  </div>
+
+  <div id="brief" role="dialog" aria-modal="true" aria-labelledby="brief-hello">
+    <div id="brief-sheet">
+      <div id="brief-head">
+        <div id="brief-hello">Good morning, Samuel</div>
+        <div id="brief-sub"></div>
+      </div>
+      <div id="brief-body"></div>
+      <div id="brief-foot"><button id="brief-go">Let's go</button></div>
     </div>
   </div>
 
@@ -277,6 +412,13 @@
     let renderedIds = new Set();   // drives the enter animation
     let channel = null;
     let retryCount = 0;
+    let dragging = false;
+    let calEvents = [];
+    let calLoadedAt = 0;
+    let calSynced = null;
+    let weekOffset = 0;            // 0 = this week, -1 = last week...
+    let weekLoaded = false;
+    const BRIEF_KEY = 'todo.brief.lastShown';
 
     // ── Helpers ───────────────────────────────────────────
     // Local calendar date. The old version used toISOString(), which is UTC —
@@ -306,6 +448,38 @@
         return (p.protocol === 'http:' || p.protocol === 'https:') ? p.href : null;
       } catch { return null; }
     }
+    function addDays(ymd, n) {
+      const d = new Date(ymd + 'T12:00:00');
+      d.setDate(d.getDate() + n);
+      return dateStr(d);
+    }
+    // Monday of the week containing ymd
+    function weekStart(ymd) {
+      const d = new Date(ymd + 'T12:00:00');
+      return addDays(ymd, -((d.getDay() + 6) % 7));
+    }
+    function fmtTime(d) {
+      return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).replace(':00', '').replace(' ', ' ');
+    }
+    const ICON_CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>';
+
+    // Google Calendar "new event" link prefilled with the task. With a due
+    // date it lands as an all-day event on that day; otherwise Google picks.
+    function gcalLink(task) {
+      const p = new URLSearchParams({ action: 'TEMPLATE', text: task.text, details: 'From my to-do list' });
+      if (task.due) {
+        const a = task.due.replace(/-/g, '');
+        const b = addDays(task.due, 1).replace(/-/g, '');
+        p.set('dates', `${a}/${b}`);
+      }
+      return 'https://calendar.google.com/calendar/render?' + p.toString();
+    }
+
+    // Manual order: lower position = higher up. Rows from an older cache
+    // may lack position, so fall back to newest-first.
+    function posOf(t) { return typeof t.position === 'number' ? t.position : -Number(t.id); }
+    function sortTasks() { tasks.sort((a, b) => (posOf(a) - posOf(b)) || (b.id - a.id)); }
+
     function prettyDate(ymd) {
       const d = new Date(ymd + 'T12:00:00');
       return isNaN(d) ? ymd : d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
@@ -356,8 +530,10 @@
         const { data, error } = await sb.rpc('daily_rollover', { p_today: today() });
         if (error) throw error;
         tasks = data || [];
+        sortTasks();
         rolloverDay = today();
         renderTasks();
+        if (briefIsOpen()) renderBrief();
         writeCache();
         setSync('ok', '● live');
       } catch (err) {
@@ -384,8 +560,10 @@
           } else if (eventType === 'DELETE') {
             tasks = tasks.filter(t => t.id !== o.id);
           }
-          renderTasks();
+          sortTasks();
+          if (!dragging) renderTasks();
           writeCache();
+          if (briefIsOpen()) renderBrief();
         })
         .subscribe(status => {
           if (status === 'SUBSCRIBED') {
@@ -405,9 +583,19 @@
     // fires on a phone because the page is frozen the moment it backgrounds.
     function startWatchers() {
       subscribe();
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+      // A home-screen app is usually resumed, not reloaded, so the brief check
+      // has to run on resume too — otherwise it would only fire on a cold start.
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) return;
+        refresh();
+        maybeAutoBrief();
+        if ($('panel-calendar').classList.contains('visible')) loadCalendar();
+      });
       window.addEventListener('online', () => refresh());
-      setInterval(() => { if (today() !== rolloverDay) refresh(); }, 60000);
+      setInterval(() => {
+        if (today() !== rolloverDay) refresh();
+        if (!document.hidden) maybeAutoBrief();
+      }, 60000);
     }
 
     // ── CRUD ──────────────────────────────────────────────
@@ -434,6 +622,7 @@
         // add locally too, so the task appears even if realtime is asleep
         if (data && !tasks.some(t => t.id === data.id)) {
           tasks.unshift(data);
+          sortTasks();
           renderTasks();
           writeCache();
         }
@@ -461,13 +650,72 @@
       Object.assign(t, changes);
       renderTasks();
       writeCache();
+      if (briefIsOpen()) renderBrief();
+      weekLoaded = false;
       const { error } = await sb.from('tasks').update(changes).eq('id', id);
       if (error) {                       // roll the optimistic update back
         Object.assign(t, before);
         renderTasks();
         writeCache();
+        if (briefIsOpen()) renderBrief();
         setSync('err', 'sync error');
       }
+    }
+
+    // ── Drag to reorder ───────────────────────────────────
+    // Only the moved row is written: its new position is the midpoint of its
+    // new neighbours, so one UPDATE per drag regardless of list length.
+    async function moveTask(id, prevId, nextId) {
+      const t = tasks.find(x => x.id === id);
+      if (!t) return;
+      const prev = prevId != null ? tasks.find(x => x.id === prevId) : null;
+      const next = nextId != null ? tasks.find(x => x.id === nextId) : null;
+      let pos;
+      if (prev && next) pos = (posOf(prev) + posOf(next)) / 2;
+      else if (prev) pos = posOf(prev) + 1;
+      else if (next) pos = posOf(next) - 1;
+      else return;
+      const before = t.position;
+      t.position = pos;
+      sortTasks();
+      renderTasks();
+      writeCache();
+      if (!sb) return;
+      const { error } = await sb.from('tasks').update({ position: pos }).eq('id', id);
+      if (error) {
+        console.error('reorder failed:', error);
+        t.position = before;
+        sortTasks();
+        renderTasks();
+        writeCache();
+        setSync('err', 'reorder failed');
+      }
+    }
+
+    function initSortable() {
+      if (typeof Sortable === 'undefined') return;   // CDN miss: list still works, just no drag
+      Sortable.create($('task-list'), {
+        handle: '.grip',
+        draggable: '.task',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        dragClass: 'sortable-drag',
+        forceFallback: true,          // consistent behaviour on iOS Safari / PWA
+        fallbackTolerance: 3,
+        onStart: () => { dragging = true; },
+        onEnd: evt => {
+          dragging = false;
+          if (evt.oldIndex === evt.newIndex) return;
+          const el = evt.item;
+          const id = Number(el.dataset.id);
+          const prevEl = el.previousElementSibling;
+          const nextEl = el.nextElementSibling;
+          moveTask(id,
+            prevEl?.dataset.id ? Number(prevEl.dataset.id) : null,
+            nextEl?.dataset.id ? Number(nextEl.dataset.id) : null);
+        }
+      });
     }
 
     async function deleteTask(id) {
@@ -548,11 +796,13 @@
             t.recurring ? `<span class="tag recur">↻ ${escHtml(t.recurring)}</span>` : ''
           ].filter(Boolean).join('');
           return `<div class="task${t.done ? ' done' : ''}${isNew ? ' is-new' : ''}" data-id="${t.id}">
+            <div class="grip" aria-label="Drag to reorder" title="Drag to reorder">⋮⋮</div>
             <button class="check${t.done ? ' done' : ''}" data-action="toggle" aria-label="Toggle"></button>
             <div class="task-body">
               <div class="task-text" data-action="toggle">${escHtml(t.text)}</div>
               ${tags ? `<div class="task-tags">${tags}</div>` : ''}
             </div>
+            ${t.done ? '' : `<a class="cal-btn" href="${escHtml(gcalLink(t))}" target="_blank" rel="noopener noreferrer" aria-label="Add to Google Calendar" title="Add to Google Calendar">${ICON_CAL}</a>`}
             <button class="del" data-action="delete" aria-label="Delete">×</button>
           </div>`;
         }).join('');
@@ -630,6 +880,303 @@
       $('news-footer').textContent = `${filtered.length} article${filtered.length !== 1 ? 's' : ''}`;
     }
 
+    // ── Calendar (mirrored from Google by a scheduled Claude task) ──
+    async function loadCalendar(force = false) {
+      if (!sb) { $('cal-list').innerHTML = '<div class="week-empty">Offline — calendar unavailable.</div>'; return; }
+      if (!force && Date.now() - calLoadedAt < 5 * 60 * 1000) return;
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const end = new Date(start); end.setDate(end.getDate() + 14);
+      const [ev, sync] = await Promise.all([
+        sb.from('calendar_events').select('*')
+          .lt('start_at', end.toISOString())
+          .gt('end_at', start.toISOString())
+          .order('start_at', { ascending: true }),
+        sb.from('calendar_sync').select('last_synced').eq('id', 1).maybeSingle()
+      ]);
+      if (ev.error) {
+        console.error('calendar load error:', ev.error);
+        $('cal-list').innerHTML = '<div class="week-empty">Couldn’t load calendar.</div>';
+        return;
+      }
+      calEvents = (ev.data || []).map(e => ({ ...e, s: new Date(e.start_at), e: new Date(e.end_at) }));
+      calSynced = sync.data?.last_synced ? new Date(sync.data.last_synced) : null;
+      calLoadedAt = Date.now();
+      renderCalendar();
+    }
+
+    function eventsOn(ymd) {
+      const ds = new Date(ymd + 'T00:00:00');
+      const de = new Date(ds); de.setDate(de.getDate() + 1);
+      return calEvents
+        .filter(e => e.s < de && e.e > ds)
+        .sort((a, b) => (b.all_day - a.all_day) || (a.s - b.s));
+    }
+
+    function eventRow(e) {
+      const now = new Date();
+      const href = e.html_link ? safeUrl(e.html_link) : null;
+      const state = e.all_day ? '' : (e.e <= now ? ' past' : (e.s <= now ? ' now' : ''));
+      const time = e.all_day
+        ? 'All day'
+        : `${fmtTime(e.s)}<br><span style="color:var(--text-faint)">${fmtTime(e.e)}</span>`;
+      const inner = `<div class="event-time">${time}</div><div class="event-bar"></div>
+        <div><div class="event-title">${escHtml(e.title)}</div>${e.location ? `<div class="event-loc">${escHtml(e.location)}</div>` : ''}</div>`;
+      return href
+        ? `<a class="event${e.all_day ? ' allday' : ''}${state}" href="${escHtml(href)}" target="_blank" rel="noopener noreferrer">${inner}</a>`
+        : `<div class="event${e.all_day ? ' allday' : ''}${state}">${inner}</div>`;
+    }
+
+    function syncedLabel() {
+      if (!calSynced) return 'Not synced yet';
+      const sameDay = dateStr(calSynced) === today();
+      const when = sameDay ? fmtTime(calSynced)
+        : calSynced.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + fmtTime(calSynced);
+      return `Synced from Google · ${when}`;
+    }
+
+    function renderCalendar() {
+      const t = today();
+      let html = '';
+      for (let i = 0; i < 14; i++) {
+        const ymd = addDays(t, i);
+        const evs = eventsOn(ymd);
+        if (!evs.length && i > 1) continue;
+        const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow'
+          : new Date(ymd + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+        html += `<div class="cal-day-label${i === 0 ? ' today' : ''}">${label}</div>`;
+        html += evs.length ? evs.map(eventRow).join('') : '<div class="cal-empty-day">Nothing scheduled</div>';
+      }
+      $('cal-list').innerHTML = html;
+      $('cal-synced').textContent = syncedLabel();
+    }
+
+    // ── Week recap ────────────────────────────────────────
+    // Pulls [ws-7, ws+7) so the week and the one before it come back together.
+    async function fetchWeeks(ws) {
+      const from = addDays(ws, -7), to = addDays(ws, 7);
+      const { data, error } = await sb.from('task_history')
+        .select('text, category, completed_date, recurring')
+        .gte('completed_date', from)
+        .lt('completed_date', to);
+      if (error) throw error;
+      // today's completions are still on the live list, not archived yet
+      const live = tasks
+        .filter(x => x.done && x.completed_date && x.completed_date >= from && x.completed_date < to)
+        .map(x => ({ text: x.text, category: x.category, completed_date: x.completed_date, recurring: x.recurring }));
+      const seen = new Set(), all = [];
+      for (const r of [...(data || []), ...live]) {
+        const k = r.text + '|' + r.completed_date;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        all.push(r);
+      }
+      return {
+        cur: all.filter(r => r.completed_date >= ws),
+        prev: all.filter(r => r.completed_date < ws)
+      };
+    }
+
+    async function loadWeek() {
+      if (!sb) { $('week-body').innerHTML = '<div class="week-empty">Offline — recap unavailable.</div>'; return; }
+      const ws = addDays(weekStart(today()), weekOffset * 7);
+      renderWeekLabel(ws);
+      try {
+        const { cur, prev } = await fetchWeeks(ws);
+        renderWeek(ws, cur, prev);
+        weekLoaded = true;
+      } catch (err) {
+        console.error('week load error:', err);
+        $('week-body').innerHTML = '<div class="week-empty">Couldn’t load this week.</div>';
+      }
+    }
+
+    function renderWeekLabel(ws) {
+      const f = ymd => new Date(ymd + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const tag = weekOffset === 0 ? 'This week' : weekOffset === -1 ? 'Last week' : '';
+      $('week-label').textContent = `${tag ? tag + ' · ' : ''}${f(ws)} – ${f(addDays(ws, 6))}`;
+      $('week-next').disabled = weekOffset >= 0;
+    }
+
+    function renderWeek(ws, cur, prev) {
+      const t = today();
+      const days = [...Array(7)].map((_, i) => addDays(ws, i));
+      const perDay = days.map(d => cur.filter(r => r.completed_date === d).length);
+      const activeDays = perDay.filter(n => n > 0).length;
+      const max = Math.max(1, ...perDay);
+      const bestIdx = perDay.indexOf(Math.max(...perDay));
+      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      // mid-week, compare against the same point last week, not all of it
+      const todayIdx = days.indexOf(t);
+      const partial = todayIdx >= 0 && todayIdx < 6;
+      const cmp = partial ? prev.filter(r => r.completed_date <= addDays(ws, todayIdx - 7)) : prev;
+      const diff = cur.length - cmp.length;
+      const vs = partial ? 'this point last week' : 'prior week';
+      const deltaTxt = cmp.length === 0 && cur.length === 0 ? '' :
+        diff === 0 ? `same as ${vs}` : `${diff > 0 ? '+' : ''}${diff} vs ${vs}`;
+
+      // habits = anything recurring on the list now, plus anything logged as recurring
+      const habitNames = new Set(tasks.filter(x => x.recurring).map(x => x.text));
+      cur.forEach(r => { if (r.recurring) habitNames.add(r.text); });
+      const isHabit = r => r.recurring || habitNames.has(r.text);
+      const oneOffs = cur.filter(r => !isHabit(r));
+
+      const cats = {};
+      cur.forEach(r => { const c = r.category || 'other'; cats[c] = (cats[c] || 0) + 1; });
+      const catRows = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+      const catMax = Math.max(1, ...catRows.map(c => c[1]));
+
+      let html = `<div class="stat-row">
+        <div class="stat"><div class="stat-num">${cur.length}</div><div class="stat-lbl">tasks done</div>
+          <div class="stat-delta ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}">${escHtml(deltaTxt)}</div></div>
+        <div class="stat"><div class="stat-num">${activeDays}<span style="font-size:15px;color:var(--text-faint)">/7</span></div><div class="stat-lbl">active days</div></div>
+        <div class="stat"><div class="stat-num">${cur.length ? dayNames[bestIdx] : '—'}</div><div class="stat-lbl">best day${cur.length ? ' · ' + perDay[bestIdx] : ''}</div></div>
+      </div>`;
+
+      html += `<div class="section-h">By day</div>
+        <div class="daybars">${perDay.map(n => `<div class="daybar"><span class="daybar-n">${n || ''}</span>
+          <div class="daybar-fill${n ? '' : ' zero'}" style="height:${n ? Math.max(6, Math.round(n / max * 72)) : 2}px"></div></div>`).join('')}</div>
+        <div class="daybar-d">${days.map((d, i) => `<span class="${d === t ? 'today' : ''}">${dayNames[i][0]}</span>`).join('')}</div>`;
+
+      if (habitNames.size) {
+        html += `<div class="section-h">Habits</div>`;
+        html += [...habitNames].map(name => {
+          const hits = new Set(cur.filter(r => r.text === name).map(r => r.completed_date));
+          const dots = days.map(d => `<span class="hdot${hits.has(d) ? ' on' : ''}${d > t ? ' future' : ''}" title="${d}"></span>`).join('');
+          return `<div class="habit"><span class="habit-name">${escHtml(name)}</span><span class="habit-dots">${dots}</span><span class="habit-n">${hits.size}/7</span></div>`;
+        }).join('');
+      }
+
+      if (catRows.length) {
+        html += `<div class="section-h">Where the time went</div>` + catRows.map(([c, n]) =>
+          `<div class="cat-row"><span class="cat-name">${escHtml(c)}</span><span class="cat-track"><span class="cat-fill" style="display:block;width:${Math.round(n / catMax * 100)}%"></span></span><span class="cat-n">${n}</span></div>`).join('');
+      }
+
+      html += `<div class="section-h">Completed</div>`;
+      if (!oneOffs.length) {
+        html += `<div class="brief-muted">${cur.length ? 'Only habits so far.' : 'Nothing checked off yet this week.'}</div>`;
+      } else {
+        html += days.slice().reverse().map(d => {
+          const items = oneOffs.filter(r => r.completed_date === d);
+          if (!items.length) return '';
+          return `<div class="history-day"><div class="history-day-label">${escHtml(prettyDate(d))}</div>${items.map(r =>
+            `<div class="history-item"><div class="history-check"></div><span>${escHtml(r.text)}</span>${r.category ? `<span class="history-cat">${escHtml(r.category)}</span>` : ''}</div>`).join('')}</div>`;
+        }).join('');
+      }
+      $('week-body').innerHTML = html;
+    }
+
+    // ── Morning brief ─────────────────────────────────────
+    function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+    function lsSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+    function briefIsOpen() { return $('brief').classList.contains('open'); }
+    let briefNews = [];
+    let briefWeek = null;   // { label, cur, prev }
+
+    function shouldAutoBrief() {
+      const h = new Date().getHours();
+      return h >= 8 && h < 12 && lsGet(BRIEF_KEY) !== today();
+    }
+    function maybeAutoBrief() { if (shouldAutoBrief() && !briefIsOpen()) openBrief(); }
+
+    async function openBrief() {
+      lsSet(BRIEF_KEY, today());
+      briefWeek = null;
+      renderBrief();
+      $('brief').classList.add('open');
+      if (!sb) return;
+      const jobs = [loadCalendar(true).catch(() => {})];
+      jobs.push(sb.from('daily_news').select('headline, source_url, date_added, category')
+        .order('date_added', { ascending: false }).order('id', { ascending: false }).limit(5)
+        .then(({ data }) => {
+          const rows = data || [];
+          const latest = rows[0]?.date_added;
+          briefNews = rows.filter(r => r.date_added === latest).slice(0, 3);
+        }).catch(() => {}));
+      // Sunday: the week so far. Monday: how last week went.
+      const dow = new Date().getDay();
+      if (dow === 0 || dow === 1) {
+        const ws = dow === 0 ? weekStart(today()) : addDays(weekStart(today()), -7);
+        jobs.push(fetchWeeks(ws).then(({ cur, prev }) => {
+          briefWeek = { label: dow === 0 ? 'Your week so far' : 'Last week', cur, prev, offset: dow === 0 ? 0 : -1 };
+        }).catch(() => {}));
+      }
+      await Promise.all(jobs);
+      if (briefIsOpen()) renderBrief();
+    }
+
+    function closeBrief() { $('brief').classList.remove('open'); }
+
+    function briefTaskRow(t, tag = '') {
+      return `<div class="brief-task${t.done ? ' done' : ''}" data-id="${t.id}">
+        <button class="check${t.done ? ' done' : ''}" aria-label="Toggle"></button><span>${escHtml(t.text)}</span>${tag}</div>`;
+    }
+
+    function renderBrief() {
+      const t = today();
+      const hour = new Date().getHours();
+      $('brief-hello').textContent = hour < 12 ? 'Good morning, Samuel' : hour < 17 ? 'Good afternoon, Samuel' : 'Good evening, Samuel';
+
+      const evs = eventsOn(t);
+      const oneOffs = tasks.filter(x => !x.recurring);
+      const overdue = oneOffs.filter(x => !x.done && x.due && x.due < t);
+      const dueToday = oneOffs.filter(x => x.due === t);
+      const urgent = oneOffs.filter(x => !x.done && x.priority === 'urgent');
+      const onDeck = [];
+      const add = x => { if (!onDeck.includes(x)) onDeck.push(x); };
+      overdue.forEach(add); dueToday.forEach(add); urgent.forEach(add);
+      // fill to 3 from the top of the manually ordered list
+      for (const x of oneOffs) { if (onDeck.length >= 3) break; if (!x.done) add(x); }
+      const dailies = tasks.filter(x => x.recurring);
+      const openCount = oneOffs.filter(x => !x.done).length;
+
+      const timed = evs.filter(e => !e.all_day).length;
+      const bits = [new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })];
+      bits.push(timed ? `${timed} event${timed > 1 ? 's' : ''}` : 'clear calendar');
+      if (overdue.length) bits.push(`${overdue.length} overdue`);
+      $('brief-sub').textContent = bits.join(' · ');
+
+      let html = `<div class="brief-card"><div class="brief-card-h"><span>Today's schedule</span><span>${calSynced ? escHtml(dateStr(calSynced) === t ? fmtTime(calSynced) + ' sync' : 'synced ' + calSynced.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })) : ''}</span></div>
+        ${evs.length ? evs.map(eventRow).join('') : `<div class="brief-muted">${calLoadedAt ? 'Nothing on the calendar today.' : 'Loading calendar...'}</div>`}</div>`;
+
+      const tagFor = x => x.due && x.due < t ? '<span class="tag overdue">Overdue</span>'
+        : x.due === t ? '<span class="tag duetoday">Today</span>'
+        : x.priority === 'urgent' ? '<span class="tag urgent">Urgent</span>' : '';
+      html += `<div class="brief-card"><div class="brief-card-h"><span>On deck</span><span>${openCount} open</span></div>
+        ${onDeck.length ? onDeck.map(x => briefTaskRow(x, tagFor(x))).join('') : '<div class="brief-muted">List is clear.</div>'}</div>`;
+
+      if (dailies.length) {
+        const doneN = dailies.filter(x => x.done).length;
+        html += `<div class="brief-card"><div class="brief-card-h"><span>Dailies</span><span>${doneN}/${dailies.length}</span></div>
+          ${dailies.map(x => briefTaskRow(x)).join('')}</div>`;
+      }
+
+      if (briefWeek) {
+        const { cur, prev, label } = briefWeek;
+        const diff = cur.length - prev.length;
+        const days = new Set(cur.map(r => r.completed_date)).size;
+        html += `<div class="brief-card"><div class="brief-card-h"><span>${escHtml(label)}</span></div>
+          <div class="brief-week">${cur.length} task${cur.length === 1 ? '' : 's'} done across ${days} day${days === 1 ? '' : 's'}${
+            prev.length || cur.length ? ` (${diff >= 0 ? '+' : ''}${diff} vs the week before)` : ''}.</div>
+          <button class="brief-link" id="brief-week-link">See the full recap →</button></div>`;
+      }
+
+      if (briefNews.length) {
+        html += `<div class="brief-card"><div class="brief-card-h"><span>Headlines</span></div>${briefNews.map(n => {
+          const href = n.source_url ? safeUrl(n.source_url) : null;
+          return `<div class="brief-news">${href ? `<a href="${escHtml(href)}" target="_blank" rel="noopener noreferrer">${escHtml(n.headline)}</a>` : escHtml(n.headline)}</div>`;
+        }).join('')}</div>`;
+      }
+      $('brief-body').innerHTML = html;
+    }
+
+    function showTab(name) {
+      document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+      document.querySelectorAll('.panel').forEach(p => p.classList.toggle('visible', p.id === 'panel-' + name));
+      if (name === 'news' && !newsLoaded) loadNews();
+      if (name === 'calendar') loadCalendar();
+      if (name === 'week') loadWeek();
+    }
+
     // ── History ───────────────────────────────────────────
     async function loadHistory() {
       if (!sb) { $('history-list').innerHTML = '<div id="empty-state">Offline — history unavailable.</div>'; return; }
@@ -678,15 +1225,27 @@
     }
 
     // ── Wiring ────────────────────────────────────────────
+    // news / calendar / week load lazily so they never compete with the task load
     document.querySelectorAll('.tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
-        btn.classList.add('active');
-        $('panel-' + btn.dataset.tab).classList.add('visible');
-        // news no longer competes with the task load on every cold start
-        if (btn.dataset.tab === 'news' && !newsLoaded) loadNews();
-      });
+      btn.addEventListener('click', () => showTab(btn.dataset.tab));
+    });
+
+    $('week-prev').addEventListener('click', () => { weekOffset--; loadWeek(); });
+    $('week-next').addEventListener('click', () => { if (weekOffset < 0) { weekOffset++; loadWeek(); } });
+
+    $('brief-open').addEventListener('click', () => openBrief());
+    $('brief-go').addEventListener('click', closeBrief);
+    $('brief').addEventListener('click', e => { if (e.target.id === 'brief') closeBrief(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && briefIsOpen()) closeBrief(); });
+    $('brief-body').addEventListener('click', e => {
+      if (e.target.closest('#brief-week-link')) {
+        weekOffset = briefWeek?.offset ?? 0;
+        closeBrief();
+        showTab('week');
+        return;
+      }
+      const row = e.target.closest('.brief-task');
+      if (row) toggleTask(Number(row.dataset.id));
     });
 
     $('filter-row').addEventListener('click', e => {
@@ -755,6 +1314,7 @@
     const cached = readCache();
     if (cached && cached.length) {
       tasks = cached;
+      sortTasks();
       renderTasks();
       hideLoading();
       setSync('warn', 'cached...');
@@ -762,7 +1322,8 @@
       showLoading('Waking things up...');
     }
 
-    refresh({ initial: true }).then(startWatchers);
+    initSortable();
+    refresh({ initial: true }).then(() => { startWatchers(); maybeAutoBrief(); });
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
