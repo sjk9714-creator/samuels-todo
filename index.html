@@ -258,6 +258,7 @@
     .gate-form { margin-top: 28px; display: flex; flex-direction: column; gap: 10px; text-align: left; }
     .gate-input { height: 46px; padding: 0 14px; font-family: 'DM Sans', sans-serif; font-size: 16px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); outline: none; width: 100%; }
     .gate-input:focus { border-color: var(--accent); }
+    .pin-input { text-align: center; font-size: 28px; letter-spacing: 0.6em; padding-left: 0.6em; height: 60px; max-width: 220px; margin: 0 auto; }
     textarea.gate-input { height: 72px; padding: 10px 14px; resize: none; font-size: 14px; line-height: 1.4; }
     .gate-label { font-size: 12px; color: var(--text-muted); margin: 6px 0 -4px; }
     .gate-btn { height: 46px; border: none; border-radius: var(--radius-sm); background: var(--text); color: var(--bg); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; }
@@ -1377,13 +1378,18 @@
 
     function showLock(msg = '') {
       openGate(`<div class="gate-title">To-Do</div>
-        <div class="gate-sub">Enter the household password. You only do this once on each device.</div>
-        <form class="gate-form" id="lock-form" autocomplete="on">
-          <input type="email" name="username" value="${HOUSEHOLD_EMAIL}" autocomplete="username" hidden>
-          <input class="gate-input" type="password" id="lock-pw" placeholder="Household password" autocomplete="current-password" required>
+        <div class="gate-sub">Enter the household PIN. You only do this once on each device.</div>
+        <form class="gate-form" id="lock-form" autocomplete="off">
+          <input class="gate-input pin-input" type="password" id="lock-pw" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+                 placeholder="••••" autocomplete="one-time-code" aria-label="Household PIN" required>
           <div class="gate-err" id="lock-err">${escHtml(msg)}</div>
           <button class="gate-btn" id="lock-go" type="submit">Continue</button>
         </form>`);
+      // submit as soon as the 4th digit lands
+      $('lock-pw').addEventListener('input', e => {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+        if (e.target.value.length === 4 && !$('lock-go').disabled) doUnlock(e.target.value);
+      });
       setTimeout(() => $('lock-pw')?.focus(), 50);
     }
 
@@ -1393,7 +1399,9 @@
       const { error } = await sb.auth.signInWithPassword({ email: HOUSEHOLD_EMAIL, password: pw });
       if (error) {
         $('lock-go').disabled = false;
-        $('lock-err').textContent = /invalid/i.test(error.message) ? 'That password isn’t right.' : 'Couldn’t sign in: ' + error.message;
+        $('lock-err').textContent = /invalid/i.test(error.message) ? 'Wrong PIN.' : 'Couldn’t sign in: ' + error.message;
+        $('lock-pw').value = '';
+        $('lock-pw').focus();
         return;
       }
       try { await fetchProfiles(); } catch (e) { console.error(e); }
