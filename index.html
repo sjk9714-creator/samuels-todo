@@ -248,7 +248,7 @@
     #brief-foot { padding: 12px 22px 18px; flex-shrink: 0; }
     #brief-go { width: 100%; height: 46px; border: none; border-radius: var(--radius-sm); background: var(--text); color: var(--bg); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; }
 
-    /* Gate: household password + "Who's using?" */
+    /* Gate: PIN lock */
     #gate { position: fixed; inset: 0; z-index: 950; background: var(--bg); display: none; overflow-y: auto; }
     #gate.open { display: block; }
     .gate-inner { max-width: 440px; margin: 0 auto; padding: max(12vh, 60px) 24px 40px; text-align: center; }
@@ -258,28 +258,9 @@
     .gate-input { height: 46px; padding: 0 14px; font-family: 'DM Sans', sans-serif; font-size: 16px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); outline: none; width: 100%; }
     .gate-input:focus { border-color: var(--accent); }
     .pin-input { text-align: center; font-size: 28px; letter-spacing: 0.6em; padding-left: 0.6em; height: 60px; max-width: 220px; margin: 0 auto; }
-    textarea.gate-input { height: 72px; padding: 10px 14px; resize: none; font-size: 14px; line-height: 1.4; }
-    .gate-label { font-size: 12px; color: var(--text-muted); margin: 6px 0 -4px; }
     .gate-btn { height: 46px; border: none; border-radius: var(--radius-sm); background: var(--text); color: var(--bg); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; }
     .gate-btn:disabled { opacity: 0.5; cursor: default; }
-    .gate-btn.ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border-strong); }
-    .gate-btn.danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
     .gate-err { font-size: 13px; color: var(--danger); min-height: 18px; }
-    .gate-note { font-size: 12px; color: var(--text-faint); line-height: 1.5; }
-    .profiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 22px 18px; margin-top: 34px; }
-    .pf { width: 96px; background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 9px; padding: 0; }
-    .pf-av { width: 84px; height: 84px; border-radius: 22px; display: flex; align-items: center; justify-content: center; color: #fff; font-family: 'DM Serif Display', serif; font-size: 38px; transition: transform 0.12s, box-shadow 0.12s; position: relative; }
-    .pf:hover .pf-av, .pf:focus-visible .pf-av { transform: translateY(-2px); box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--text); }
-    .pf:hover { color: var(--text); }
-    .pf-name { font-size: 14px; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .pf-av.add { background: transparent; border: 1.5px dashed var(--border-strong); color: var(--text-faint); font-family: 'DM Sans', sans-serif; font-size: 34px; font-weight: 300; }
-    .editing .pf-av:not(.add)::after { content: '✎'; position: absolute; inset: 0; border-radius: 22px; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; font-family: 'DM Sans', sans-serif; font-size: 22px; }
-    .gate-links { margin-top: 40px; display: flex; justify-content: center; gap: 18px; }
-    .gate-link { background: none; border: none; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text-muted); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-    .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
-    .swatch { width: 32px; height: 32px; border-radius: 10px; border: none; cursor: pointer; }
-    .swatch.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
-    #who-btn { width: 30px; height: 30px; border-radius: 9px; border: none; color: #fff; font-family: 'DM Serif Display', serif; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
@@ -313,7 +294,6 @@
         <div id="top-right">
           <span id="sync-status">connecting...</span>
           <button class="icon-btn" id="brief-open" title="Morning brief">☀︎ Brief</button>
-          <button id="who-btn" title="Switch profile" aria-label="Switch profile"></button>
         </div>
       </div>
       <div id="today-str"></div>
@@ -419,13 +399,10 @@
   document.addEventListener('DOMContentLoaded', () => {
     const SUPABASE_URL = 'https://rtgtgjcfaabdvumqtwgl.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0Z3RnamNmYWFiZHZ1bXF0d2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNDY1NjAsImV4cCI6MjA4ODkyMjU2MH0.IcdGUydtjwS1aYzZGv32GesRcOe3YafgQ0P_CeJyS2A';
-    // One shared household sign-in per device, then Netflix-style profiles.
-    const HOUSEHOLD_EMAIL = 'household@samueltodolist216.app';
-    const PROFILE_KEY = 'todo.profile.v1';
+    // One PIN sign-in per device, then straight to the owner's list.
+    const ACCOUNT_EMAIL = 'household@samueltodolist216.app';
     const PROFILES_CACHE = 'todo.profiles.v1';
-    const COLORS = ['#2D5A3D', '#3949AB', '#B7770D', '#C0392B', '#6A4C93', '#0E7C86', '#8A5A44', '#44474F'];
-    let me = null;          // active profile
-    let profiles = [];
+    let me = null;          // the owner profile
     let watchersOn = false;
     const cacheKey = () => `todo.tasks.v2.${me?.id}`;
     const $ = id => document.getElementById(id);
@@ -1369,15 +1346,30 @@
       recognition.start();
     });
 
-    // ── Profiles & household sign-in ──────────────────────
-    function initial(name) { return escHtml((name || '?').trim().charAt(0).toUpperCase()); }
-    function readProfilesCache() { try { const a = JSON.parse(lsGet(PROFILES_CACHE)); return Array.isArray(a) ? a : []; } catch { return []; } }
-    async function fetchProfiles() {
-      const { data, error } = await sb.from('profiles').select('*').order('is_owner', { ascending: false }).order('id');
+    // ── Sign-in ───────────────────────────────────────────
+    // Tasks, news and history still carry a profile_id; the owner profile is
+    // the only one, so it is the one the app loads.
+    function readOwnerCache() {
+      try {
+        const a = JSON.parse(lsGet(PROFILES_CACHE));
+        return Array.isArray(a) ? a.find(p => p.is_owner) || null : null;
+      } catch { return null; }
+    }
+    async function fetchOwner() {
+      const { data, error } = await sb.from('profiles').select('*')
+        .eq('is_owner', true).order('id').limit(1).maybeSingle();
       if (error) throw error;
-      profiles = data || [];
-      lsSet(PROFILES_CACHE, JSON.stringify(profiles));
-      return profiles;
+      if (data) lsSet(PROFILES_CACHE, JSON.stringify([data]));
+      return data;
+    }
+    // Leftovers on devices from when the app had more than one profile.
+    function forgetOtherProfiles(keepId) {
+      try {
+        Object.keys(localStorage).forEach(k => {
+          const m = k.match(/^todo\.(?:tasks\.v2|brief\.lastShown)\.(.+)$/);
+          if (k === 'todo.profile.v1' || (m && m[1] !== String(keepId))) localStorage.removeItem(k);
+        });
+      } catch {}
     }
 
     function openGate(html) {
@@ -1391,10 +1383,10 @@
 
     function showLock(msg = '') {
       openGate(`<div class="gate-title">To-Do</div>
-        <div class="gate-sub">Enter the household PIN. You only do this once on each device.</div>
+        <div class="gate-sub">Enter your PIN. You only do this once on each device.</div>
         <form class="gate-form" id="lock-form" autocomplete="off">
           <input class="gate-input pin-input" type="password" id="lock-pw" inputmode="numeric" pattern="[0-9]*" maxlength="4"
-                 placeholder="••••" autocomplete="one-time-code" aria-label="Household PIN" required>
+                 placeholder="••••" autocomplete="one-time-code" aria-label="PIN" required>
           <div class="gate-err" id="lock-err">${escHtml(msg)}</div>
           <button class="gate-btn" id="lock-go" type="submit">Continue</button>
         </form>`);
@@ -1409,7 +1401,7 @@
     async function doUnlock(pw) {
       $('lock-go').disabled = true;
       $('lock-err').textContent = '';
-      const { error } = await sb.auth.signInWithPassword({ email: HOUSEHOLD_EMAIL, password: pw });
+      const { error } = await sb.auth.signInWithPassword({ email: ACCOUNT_EMAIL, password: pw });
       if (error) {
         $('lock-go').disabled = false;
         $('lock-err').textContent = /invalid/i.test(error.message) ? 'Wrong PIN.' : 'Couldn’t sign in: ' + error.message;
@@ -1417,76 +1409,14 @@
         $('lock-pw').focus();
         return;
       }
-      try { await fetchProfiles(); } catch (e) { console.error(e); }
-      showPicker();
-    }
-
-    let editingProfiles = false;
-    function showPicker() {
-      if (!profiles.length) profiles = readProfilesCache();
-      const tiles = profiles.map(p => `<button class="pf" data-pid="${p.id}">
-          <span class="pf-av" style="background:${escHtml(p.color)}">${initial(p.name)}</span>
-          <span class="pf-name">${escHtml(p.name)}</span></button>`).join('');
-      openGate(`<div class="gate-title">${editingProfiles ? 'Manage profiles' : 'Who’s using?'}</div>
-        <div class="profiles${editingProfiles ? ' editing' : ''}">${tiles}
-          <button class="pf" data-pid="new"><span class="pf-av add">+</span><span class="pf-name">Add profile</span></button>
-        </div>
-        <div class="gate-links">
-          <button class="gate-link" id="pf-manage">${editingProfiles ? 'Done' : 'Manage profiles'}</button>
-          <button class="gate-link" id="pf-signout">Sign out of this device</button>
-        </div>`);
-    }
-
-    function showProfileForm(p) {
-      const isNew = !p;
-      p = p || { name: '', color: COLORS[profiles.length % COLORS.length], news_topics: '' };
-      openGate(`<div class="gate-title">${isNew ? 'Add profile' : 'Edit profile'}</div>
-        <form class="gate-form" id="pf-form" data-pid="${isNew ? '' : p.id}">
-          <div class="gate-label">Name</div>
-          <input class="gate-input" id="pf-name" maxlength="24" value="${escHtml(p.name)}" placeholder="Name" required>
-          <div class="gate-label">Color</div>
-          <div class="swatches">${COLORS.map(c => `<button type="button" class="swatch${c === p.color ? ' on' : ''}" data-color="${c}" style="background:${c}" aria-label="Color"></button>`).join('')}</div>
-          <div class="gate-label">Daily news topics (optional)</div>
-          <textarea class="gate-input" id="pf-news" maxlength="300" placeholder="e.g. finance and markets, tech, sports">${escHtml(p.news_topics || '')}</textarea>
-          <div class="gate-note">${p.is_owner ? 'Your news comes from your existing morning news task.' : 'Leave blank for no News tab feed. Headlines show up the morning after you save.'}${p.has_calendar ? '' : ' Google Calendar sync is only set up for the main profile.'}</div>
-          <div class="gate-err" id="pf-err"></div>
-          <button class="gate-btn" type="submit" id="pf-save">${isNew ? 'Add profile' : 'Save'}</button>
-          <button class="gate-btn ghost" type="button" id="pf-cancel">Cancel</button>
-          ${!isNew && !p.is_owner ? `<button class="gate-btn danger" type="button" id="pf-delete">Delete profile</button>` : ''}
-        </form>`);
-      if (isNew) setTimeout(() => $('pf-name')?.focus(), 50);
-    }
-
-    async function saveProfile(form) {
-      const pid = form.dataset.pid ? Number(form.dataset.pid) : null;
-      const name = $('pf-name').value.trim();
-      if (!name) { $('pf-err').textContent = 'Give it a name.'; return; }
-      const color = form.querySelector('.swatch.on')?.dataset.color || COLORS[0];
-      const owner = pid && profiles.find(x => x.id === pid)?.is_owner;
-      const row = { name, color };
-      if (!owner) row.news_topics = $('pf-news').value.trim() || null;
-      $('pf-save').disabled = true;
-      const q = pid ? sb.from('profiles').update(row).eq('id', pid) : sb.from('profiles').insert(row);
-      const { error } = await q;
-      if (error) { $('pf-save').disabled = false; $('pf-err').textContent = 'Couldn’t save: ' + error.message; return; }
-      await fetchProfiles();
-      if (me && pid === me.id) applyProfileChrome(profiles.find(x => x.id === pid));
-      showPicker();
-    }
-
-    async function deleteProfile(pid, btn) {
-      if (btn.dataset.armed !== '1') {
-        btn.dataset.armed = '1';
-        btn.textContent = 'Tap again to delete this profile and all its tasks';
+      let owner = null;
+      try { owner = await fetchOwner(); } catch (e) { console.error(e); }
+      if (!owner) {
+        $('lock-go').disabled = false;
+        $('lock-err').textContent = 'Signed in, but couldn’t load your list. Check your connection and try again.';
         return;
       }
-      btn.disabled = true;
-      const { error } = await sb.from('profiles').delete().eq('id', pid);
-      if (error) { btn.disabled = false; $('pf-err').textContent = 'Couldn’t delete: ' + error.message; return; }
-      try { localStorage.removeItem(`todo.tasks.v2.${pid}`); } catch {}
-      if (me && me.id === pid) { me = null; lsSet(PROFILE_KEY, ''); }
-      await fetchProfiles();
-      showPicker();
+      startProfile(owner);
     }
 
     function applyProfileChrome(p) {
@@ -1494,21 +1424,18 @@
       const title = `${p.name}’s To-Do List`;
       $('wordmark').textContent = title;
       document.title = title;
-      $('who-btn').textContent = (p.name || '?').trim().charAt(0).toUpperCase();
-      $('who-btn').style.background = p.color;
       document.querySelector('.tab[data-tab="calendar"]').style.display = p.has_calendar ? '' : 'none';
     }
 
-    // Network-free half of switching to a profile: chrome, per-person reset,
-    // and the cached list on screen. Safe to run before the session is known.
+    // Network-free half of loading the list: chrome, a clean slate, and the
+    // cached list on screen. Safe to run before the session is known.
     function openProfile(p) {
       unsubscribe();
       retryCount = 0;
       applyProfileChrome(p);
-      lsSet(PROFILE_KEY, String(p.id));
-      editingProfiles = false;
+      forgetOtherProfiles(p.id);
       closeGate();
-      // fresh slate for everything per-person
+      // fresh slate (matters after a sign-out and back in)
       tasks = []; renderedIds = new Set(); rolloverDay = null;
       newsItems = []; newsLoaded = false; newsFilter = 'all';
       calEvents = []; calLoadedAt = 0; calSynced = null;
@@ -1542,36 +1469,6 @@
     $('gate').addEventListener('submit', e => {
       e.preventDefault();
       if (e.target.id === 'lock-form') doUnlock($('lock-pw').value);
-      if (e.target.id === 'pf-form') saveProfile(e.target);
-    });
-    $('gate').addEventListener('click', async e => {
-      const tile = e.target.closest('.pf');
-      if (tile) {
-        const pid = tile.dataset.pid;
-        if (pid === 'new') return showProfileForm(null);
-        const p = profiles.find(x => String(x.id) === pid);
-        if (!p) return;
-        return editingProfiles ? showProfileForm(p) : startProfile(p);
-      }
-      const sw = e.target.closest('.swatch');
-      if (sw) { document.querySelectorAll('.swatch').forEach(x => x.classList.toggle('on', x === sw)); return; }
-      if (e.target.id === 'pf-manage') { editingProfiles = !editingProfiles; return showPicker(); }
-      if (e.target.id === 'pf-cancel') return showPicker();
-      if (e.target.id === 'pf-delete') return deleteProfile(Number($('pf-form').dataset.pid), e.target);
-      if (e.target.id === 'pf-signout') {
-        unsubscribe();
-        await sb.auth.signOut().catch(() => {});
-        try {
-          Object.keys(localStorage).filter(k => k.startsWith('todo.')).forEach(k => localStorage.removeItem(k));
-        } catch {}
-        me = null; profiles = []; tasks = [];
-        return showLock();
-      }
-    });
-    $('who-btn').addEventListener('click', () => {
-      editingProfiles = false;
-      showPicker();
-      fetchProfiles().then(() => { if ($('gate').classList.contains('open') && document.querySelector('#gate .profiles')) showPicker(); }).catch(() => {});
     });
     // signed out elsewhere or the refresh token died: back to the lock screen
     sb?.auth.onAuthStateChange((event) => {
@@ -1593,9 +1490,7 @@
     initSortable();
 
     (async function boot() {
-      profiles = readProfilesCache();
-      const savedId = lsGet(PROFILE_KEY);
-      const saved = profiles.find(p => String(p.id) === savedId);
+      const saved = readOwnerCache();
 
       if (!sb) {                     // offline first open: show cached list read-only
         if (saved) { applyProfileChrome(saved); tasks = readCache() || []; sortTasks(); renderTasks(); }
@@ -1614,14 +1509,14 @@
 
       if (saved) {
         syncProfile();
-        fetchProfiles().then(list => {             // pick up renames / color changes
-          const fresh = list.find(p => p.id === saved.id);
-          if (!fresh) { me = null; showPicker(); }
-          else if (me && me.id === fresh.id) applyProfileChrome(fresh);
+        fetchOwner().then(fresh => {               // pick up a rename
+          if (fresh && me && me.id === fresh.id) applyProfileChrome(fresh);
         }).catch(() => {});
       } else {
-        try { await fetchProfiles(); } catch (e) { console.error(e); }
-        showPicker();
+        let owner = null;
+        try { owner = await fetchOwner(); } catch (e) { console.error(e); }
+        if (owner) startProfile(owner);
+        else { setSync('err', 'offline'); hideLoading(); }
       }
     })();
 
